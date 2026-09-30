@@ -76,6 +76,7 @@ function AllItemsPage({ lines, actorId, onBack }) {
 export function ExpenseDetail({ expense, userName, actorId, editable, locked, onEdit, onClose }) {
   const [openLines, setOpenLines] = useState({});
   const [showAllItems, setShowAllItems] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const payments = expensePayments(expense);
   const change = expenseChange(expense);
   const lines = expense.lines?.length ? expense.lines : [{
@@ -118,7 +119,8 @@ export function ExpenseDetail({ expense, userName, actorId, editable, locked, on
           {lines.length > myLines.slice(0,6).length && <button className="outline-button full" type="button" onClick={()=>setShowAllItems(true)}>查看全部商品（{lines.length}）</button>}
         </section>
 
-        <section className="detail-section"><div className="detail-section-heading"><h3><History size={17}/> 修改紀錄</h3><span className="count-pill">第 {expense.revision || 1} 版</span></div>{history.length === 0 ? <p className="muted small">尚無修改紀錄。由 {userName(expense.createdBy)} 建立。</p> : [...history].reverse().map((event)=><div className="audit-card" key={event.id}><div className="audit-title"><History size={15}/>{userName(event.by)} 修改了這筆支出<small>{dateText(event.at)}</small></div><div className="audit-change"><span>原始：{event.before?.title} · {formatMoney(event.before?.amount)}</span><span>修改：{event.after?.title} · {formatMoney(event.after?.amount)}</span></div></div>)}</section>
+        <section className="detail-section history-entry-section"><button type="button" className="outline-button full" onClick={()=>setShowHistory(true)}><History size={17}/>查看修改紀錄 <span className="history-revision">第 {expense.revision || 1} 版</span></button></section>
+        {showHistory&&<div className="history-sheet-overlay" role="presentation" onMouseDown={(event)=>event.target===event.currentTarget&&setShowHistory(false)}><section className="history-sheet" role="dialog" aria-modal="true" aria-label="修改紀錄"><div className="history-sheet-top"><h3>修改紀錄</h3><button className="icon-button" type="button" aria-label="關閉修改紀錄" onClick={()=>setShowHistory(false)}><X size={20}/></button></div><div className="history-sheet-scroll">{history.length===0?<p className="muted small">尚無修改紀錄。由 {userName(expense.createdBy)} 建立。</p>:[...history].reverse().map((event)=><div className="audit-card" key={event.id}><div className="audit-title"><History size={15}/>{userName(event.by)} 修改了這筆支出<small>{dateText(event.at)}</small></div><div className="audit-change"><span>原始：{event.before?.title} · {formatMoney(event.before?.amount)}</span><span>修改：{event.after?.title} · {formatMoney(event.after?.amount)}</span></div></div>)}</div></section></div>}
         {editable ? <button type="button" className="primary-button full" onClick={onEdit}><Pencil size={17}/>編輯支出</button> : <p className="field-hint"><LockKeyhole size={15}/>{locked ? '此活動已有還款紀錄，暫時鎖定支出修改。' : '目前只有這筆支出的記帳人可以修改。'}</p>}
         </>}
       </section>
