@@ -33,7 +33,13 @@ export function memberLedger(participantIds, expenses, settlements = []) {
     balance: 0, expenseRows: [], repaymentRows: [],
   }]));
   const ensure = (uid) => {
-    if (!Object.hasOwn(ledgers, uid)) throw new Error('帳目包含不在活動內的成員。');
+    if (!Object.hasOwn(ledgers, uid)) {
+      ledgers[uid] = {
+        uid, paid: 0, changeReceived: 0, advanced: 0, share: 0,
+        repaid: 0, received: 0, pendingOut: 0, pendingIn: 0,
+        balance: 0, expenseRows: [], repaymentRows: [],
+      };
+    }
     return ledgers[uid];
   };
   for (const expense of expenses) {
