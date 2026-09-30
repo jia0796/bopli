@@ -9,8 +9,13 @@ export function buildRoundingModel(participantIds, expenses) {
   let originalTotal = 0;
 
   for (const expense of expenses) {
-    originalTotal += expense.amount || 0;
-    for (const id of participantIds) currentShare[id] += expense.allocations?.[id] || 0;
+    // Only the shares of current members participate in the final-rounding choice.
+    // Historical members keep their already-recorded shares exactly as they were.
+    for (const id of participantIds) {
+      const current = expense.allocations?.[id] || 0;
+      currentShare[id] += current;
+      originalTotal += current;
+    }
     const lines = expense.lines?.length ? expense.lines : [{
       amount: expense.amount,
       splitMode: expense.splitMode,
@@ -18,9 +23,10 @@ export function buildRoundingModel(participantIds, expenses) {
       allocations: expense.allocations,
     }];
     for (const line of lines) {
-      const ids = (line.participantIds || []).filter((id)=>id in exactEqual);
-      if (line.splitMode === 'equal' && ids.length) {
-        const exact = Number(line.amount || 0) / ids.length;
+      const originalIds = line.participantIds || [];
+      const ids = originalIds.filter((id)=>id in exactEqual);
+      if (line.splitMode === 'equal' && ids.length && originalIds.length) {
+        const exact = Number(line.amount || 0) / originalIds.length;
         ids.forEach((id)=>{ exactEqual[id] += exact; });
       } else {
         for (const id of participantIds) fixedShare[id] += line.allocations?.[id] || 0;
