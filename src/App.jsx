@@ -236,9 +236,23 @@ export default function App() {
     return rows.sort((a,b)=>a.priority-b.priority || new Date(b.activity.createdAt)-new Date(a.activity.createdAt));
   },[data,actorId]);
 
-  const sortedGroups=useMemo(()=>data.groups.filter((g)=>!g.archived&&(g.memberIds.includes(actorId)||data.activities.some((a)=>a.groupId===g.id&&((financesFor(a).balances?.[actorId]||0)!==0||data.settlements.some((x)=>x.activityId===a.id&&['pending','disputed'].includes(x.status)&&(x.fromUid===actorId||x.toUid===actorId))))).sort((a,b)=>{
-    const actionA=homeActions.some((x)=>x.group.id===a.id)?0:1;const actionB=homeActions.some((x)=>x.group.id===b.id)?0:1;return actionA-actionB || new Date(b.lastUsedAt||b.createdAt)-new Date(a.lastUsedAt||a.createdAt);
-  }),[data.groups,homeActions,actorId]);
+  const sortedGroups=useMemo(()=>{
+    const visible=data.groups.filter((g)=>{
+      if(g.archived)return false;
+      if(g.memberIds.includes(actorId))return true;
+      return data.activities.some((a)=>{
+        if(a.groupId!==g.id)return false;
+        const balance=financesFor(a).balances?.[actorId]||0;
+        const pending=data.settlements.some((x)=>x.activityId===a.id&&['pending','disputed'].includes(x.status)&&(x.fromUid===actorId||x.toUid===actorId));
+        return balance!==0||pending;
+      });
+    });
+    return visible.sort((a,b)=>{
+      const actionA=homeActions.some((x)=>x.group.id===a.id)?0:1;
+      const actionB=homeActions.some((x)=>x.group.id===b.id)?0:1;
+      return actionA-actionB || new Date(b.lastUsedAt||b.createdAt)-new Date(a.lastUsedAt||a.createdAt);
+    });
+  },[data,homeActions,actorId]);
 
   const notificationItems=useMemo(()=>{
     const items=[];
