@@ -100,7 +100,21 @@ export function calculateAllocation({ amount, participantIds, splitMode, customA
 
 /** Confirmed transfers reduce debt. Pending transfers are only reserved for new suggestions. */
 export function calculateBalances(participantIds, expenses, settlements = [], includePending = false) {
-  const balances = Object.fromEntries(participantIds.map((id) => [id, 0]));
+  // Current activity members and historical ledger participants are different concepts.
+  // A person may leave an activity/group while their earlier allocation/payment/repayment must stay valid.
+  const ledgerIds = new Set(participantIds);
+  for (const expense of expenses) {
+    for (const uid of Object.keys(expense.allocations || {})) ledgerIds.add(uid);
+    const payments = Array.isArray(expense.payments) && expense.payments.length
+      ? expense.payments : [{ uid: expense.paidBy, amount: expense.amount }];
+    for (const payment of payments) if (payment?.uid) ledgerIds.add(payment.uid);
+    if (expense.change?.receiverUid) ledgerIds.add(expense.change.receiverUid);
+  }
+  for (const settlement of settlements) {
+    if (settlement.fromUid) ledgerIds.add(settlement.fromUid);
+    if (settlement.toUid) ledgerIds.add(settlement.toUid);
+  }
+  const balances = Object.fromEntries([...ledgerIds].map((id) => [id, 0]));
   for (const expense of expenses) {
     assertAmount(expense.amount);
     const payments = Array.isArray(expense.payments) && expense.payments.length
