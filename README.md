@@ -2,90 +2,66 @@
 
 目前版本：**bopli_test.2.2**
 
-版本命名規則：
+版本命名：
 - `bopli_1.X.X`：未來正式版
-- `bopli_test.X.X`：測試版，只提供開發者與指定朋友測試
+- `bopli_test.X.X`：測試版
 
 GitHub Pages：
 - https://jia0796.github.io/bopli/
 
-完整測試使用說明：
+完整使用說明：
 - [TEST_GUIDE_2.2.md](./TEST_GUIDE_2.2.md)
 
-## test.2.2 本次重點
+## test.2.2 重點
 
-- 測試版可直接新增本機測試成員。
-- 可切換「群主／副群主／一般成員／已退出歷史成員」視角。
-- 頁面頂端會顯示目前測試身分，可快速切換。
-- 成員退出後，**目前成員**與**歷史帳務參與者**分離。
-- 退出／移除不再刪除既有分攤、付款、找零與還款紀錄。
-- 已退出但仍未結清者，可繼續處理自己的舊帳；結清後不再占目前成員名單。
-- 移出活動時，可「預設全選所有可安全重算的共同支出」，並逐筆取消。
-- 特殊／私人／自訂分攤不會被系統擅自重算。
-- 付款／墊付紀錄不因退出而消失。
-- 支出清單的「＋ 新增支出」移到「全部／與我有關」下方左側，並使用 sticky 小按鈕。
-- 支出詳情的修改紀錄改成按鈕，點擊後開啟獨立底部小頁面；右上角 `×` 關閉。
-- Google 連結成功動畫維持約 1.5 秒。
+- 這次版本做一次性本機資料重置；之後版本預設保留資料。
+- 測試身分清單初始為空，必須手動加入要模擬的成員。
+- 可切換群主／副群主／一般成員／已退出歷史成員視角。
+- 目前活動成員與歷史帳務參與者分離。
+- 移出活動時，所有既有分攤類型都可選擇移除該成員分攤。
+- 移除舊分攤預設全部不選；提供「全選 / 清除選取」。
+- 付款／墊付／找零紀錄不因移出活動而刪除。
+- 支出紀錄新增搜尋，可查支出名稱、品項、付款人與備註。
+- 支出頁取消 sticky 操作區，改用右下角 `↑` 返回頂部。
+- 支出卡可右滑刪除，刪除前一定二次確認。
+- 支出詳情底部改成「編輯支出 / 刪除支出」左右雙按鈕。
+- 刪除後不再計入帳務，但會保留活動修改紀錄。
+- 支出修改紀錄仍使用底部小頁面，右上角 `×` 關閉。
+- 成功動畫約 1.5 秒。
 - 行動瀏覽器輸入框維持 16px，避免 iPhone Safari 聚焦時自動放大。
 
-## 開發啟動
+## 開發
 
 ```
 npm install
 npm run dev
-```
-
-測試與 build：
-
-```
 npm test
 npm run build
 ```
 
 ## GitHub Pages
 
-專案已包含 `.github/workflows/deploy.yml`。
-
-每次 push 到 `main` 後會自動：
+`.github/workflows/deploy.yml` 會在 push 到 `main` 後自動：
 1. 安裝依賴
 2. 執行測試
 3. Vite build
-4. 發布到 GitHub Pages
+4. 部署 GitHub Pages
 
-GitHub → Settings → Pages → Source 必須設定為 **GitHub Actions**。
+## 目前限制
 
-## 目前仍是測試原型
+目前資料仍主要儲存在瀏覽器 `localStorage`：
 
-目前資料主要存在瀏覽器 `localStorage`：
 - 不是真正多人即時同步
 - Google Authentication 尚未正式接上
 - 邀請連結尚未接 Firebase / Firestore
-- 不同裝置開啟同一 GitHub Pages 網址，資料彼此獨立
-- 清除瀏覽器網站資料會清除本機測試帳本
+- 不同裝置資料彼此獨立
+- 清除瀏覽器網站資料會清除本機測試資料
 
 ## 核心帳務原則
 
 - 付款人與分攤人獨立。
 - 找零從實際墊付扣除。
-- 平均、自訂金額、比例與購買數量分攤。
-- 每筆平均分攤的必要 NT$1 尾差輪流處理。
+- 平均、自訂金額、比例與數量分攤皆支援。
+- 歷史付款紀錄不可因成員退出而消失。
+- 已開始還款的活動會保護既有帳務，避免直接重算或刪除。
 - 完整結算尾差只有群主／副群主能決定。
-- 已有還款紀錄時，不允許直接重算既有舊分攤。
-- 歷史帳務不可因成員退出而消失。
-
-## 專案結構
-
-```text
-src/App.jsx
-src/components/ExpenseForm.jsx
-src/components/ExpenseViews.jsx
-src/components/MemberLedger.jsx
-src/lib/money.js
-src/lib/ledger.js
-src/lib/rounding.js
-src/lib/domain.js
-src/lib/store.js
-TEST_GUIDE_2.2.md
-PRODUCT_SPEC.md
-IMPLEMENTATION_STATUS.md
-```
