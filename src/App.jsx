@@ -154,7 +154,7 @@ function redistributeRemovedShare(allocations={}, targetUid, fallbackIds=[]) {
   return original;
 }
 
-function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[]) {
+function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[],actorUid=null) {
   const next={...expense};
   if(expense.lines?.length){
     next.lines=expense.lines.map((line)=>{
@@ -172,7 +172,7 @@ function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[]) {
   }
   next.updatedAt=now();
   next.revision=(expense.revision||1)+1;
-  next.history=[...(expense.history||[]),{id:makeId(),type:'memberShareRemoved',at:now(),by:null,targetUid,beforeShare:expense.allocations?.[targetUid]||0,afterShare:0}];
+  next.history=[...(expense.history||[]),{id:makeId(),type:'memberShareRemoved',at:now(),by:actorUid,targetUid,beforeShare:expense.allocations?.[targetUid]||0,afterShare:0}];
   return next;
 }
 
@@ -461,7 +461,7 @@ export default function App() {
     const selected=new Set(activitySettlements.length?[]:selectedExpenseIds);
     setData((prev)=>({...prev,
       activities:prev.activities.map((a)=>a.id===activity.id?{...a,participantIds:newIds,memberReviewIds:(a.memberReviewIds||[]).filter((id)=>id!==uid),auditHistory:[...(a.auditHistory||[]),{id:makeId(),type:'memberRemoved',by:actorId,at:now(),message:`${nameFor(uid)} 已移出活動；${selected.size} 筆舊支出不再計其分攤。`,notifyUids:newIds}]}:a),
-      expenses:prev.expenses.map((e)=>e.activityId===activity.id&&selected.has(e.id)?{...recalcExpenseRemovingMember(e,uid,newIds),history:[...(recalcExpenseRemovingMember(e,uid,newIds).history||[]).map((h)=>h.by===null?{...h,by:actorId}:h)]}:e)
+      expenses:prev.expenses.map((e)=>e.activityId===activity.id&&selected.has(e.id)?recalcExpenseRemovingMember(e,uid,newIds,actorId):e)
     }));
     setModal(null);
     notify(selected.size?'已移出活動；勾選的舊分攤已移除並重新分配。':'已移出活動；所有既有分攤維持原狀。');
