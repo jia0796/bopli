@@ -9,7 +9,7 @@ export function freshStore() {
   return {
     version: 21,
     currentUserId: null,
-    account: { googleLinked: false, googleEmail: '', backupPromptSeen: false },
+    account: { googleLinked: false, googleEmail: '', backupPromptSeen: false, primaryUserId: '' },
     users: {},
     groups: [],
     activities: [],
@@ -69,6 +69,7 @@ export function createGuestStore(accountName, withDemo = false) {
   const data = freshStore();
   const me = makeId();
   data.currentUserId = me;
+  data.account.primaryUserId = me;
   data.users[me] = { id: me, nickname: accountName.trim(), accountName: accountName.trim(), isGuest: true, createdAt: now() };
   if (!withDemo) return data;
 
