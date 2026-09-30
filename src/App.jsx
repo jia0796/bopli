@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive, ArrowLeft, ArrowRight, Bell, Check, CheckCircle2, ChevronDown, ChevronRight,
+  Archive, ArrowLeft, ArrowRight, ArrowUp, Bell, Check, CheckCircle2, ChevronDown, ChevronRight,
   CircleAlert, Copy, Crown, History, Info, Link2, LockKeyhole, LogOut, MoreHorizontal,
   Pencil, Plus, ReceiptText, Search, Settings2, ShieldCheck, Shuffle, Sparkles, UserRound,
   UserRoundPlus, UsersRound, Wallet, X,
@@ -90,31 +90,98 @@ function IssueModal({ settlement, nameFor, onClose, onSubmit }) {
   return <div className="modal-overlay"><section className="modal small-modal"><div className="modal-top"><h2>金額有問題</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><p className="muted small">{nameFor(settlement.fromUid)} 記錄付款 {formatMoney(settlement.amount)}。收款人不能直接修改對方記錄的金額。</p><div className="issue-options">{[['amount','金額不符'],['missing','尚未收到'],['other','其他']].map(([id,label])=><button key={id} type="button" className={reason===id?'selected':''} onClick={()=>setReason(id)}>{label}</button>)}</div><label className="field"><span>補充說明（選填）</span><input value={note} onChange={(e)=>setNote(e.target.value)}/></label><button className="primary-button full" type="button" onClick={()=>onSubmit(reason,note)}>送出問題</button></section></div>;
 }
 
-function TestIdentityModal({ users, groups, actorId, primaryUserId, nameFor, onClose, onSwitch }) {
-  const rows=Object.values(users).sort((a,b)=>(a.nickname||'').localeCompare(b.nickname||'','zh-TW'));
+function TestIdentityModal({ users, groups, actorId, primaryUserId, testIdentityIds, onClose, onSwitch, onAddIdentity, onRemoveIdentity }) {
+  const rows=testIdentityIds.map((id)=>users[id]).filter(Boolean);
+  const candidates=Object.values(users).filter((user)=>user.id!==primaryUserId&&!testIdentityIds.includes(user.id))
+    .sort((a,b)=>(a.nickname||'').localeCompare(b.nickname||'','zh-TW'));
+  const [adding,setAdding]=useState(false);
   const roleFor=(uid)=>{
     if(groups.some((g)=>g.ownerUid===uid))return'群主';
     if(groups.some((g)=>(g.deputyUids||[]).includes(uid)))return'副群主';
     if(groups.some((g)=>g.memberIds.includes(uid)))return'一般成員';
     return'已退出／歷史成員';
   };
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal test-identity-modal"><div className="modal-top"><h2>切換測試身分</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div><p className="muted small">只切換目前操作人的身分視角，不會改變帳目、角色資格或付款紀錄。</p><div className="test-identity-list">{rows.map((user)=><button type="button" key={user.id} className={`test-identity-row ${user.id===actorId?'selected':''}`} onClick={()=>onSwitch(user.id)}><PersonAvatar name={user.nickname||user.accountName} small/><span><strong>{user.nickname||user.accountName}</strong><small>{roleFor(user.id)}{user.id===primaryUserId?' · 預設身分':''}</small></span>{user.id===actorId&&<Check size={16}/>}</button>)}</div>{actorId!==primaryUserId&&<button className="outline-button full" type="button" onClick={()=>onSwitch(primaryUserId)}>回到預設身分</button>}</section></div>;
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal test-identity-modal"><div className="modal-top"><h2>切換測試身分</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div><p className="muted small">測試身分清單不會自動加入任何成員；必須由你手動加入後才可切換。</p>
+    {rows.length===0&&!adding?<div className="empty-state compact-empty"><UserRound size={23}/><h3>尚未建立測試身分</h3><p>先手動加入要模擬的成員。</p><button className="outline-button" type="button" onClick={()=>setAdding(true)}><Plus size={16}/>新增測試身分</button></div>:<>
+      {rows.length>0&&<div className="test-identity-list">{rows.map((user)=><div className={`test-identity-row-wrap ${user.id===actorId?'selected':''}`} key={user.id}><button type="button" className="test-identity-row" onClick={()=>onSwitch(user.id)}><PersonAvatar name={user.nickname||user.accountName} small/><span><strong>{user.nickname||user.accountName}</strong><small>{roleFor(user.id)}</small></span>{user.id===actorId&&<Check size={16}/>}</button><button type="button" className="test-identity-remove" aria-label={`移除 ${user.nickname||user.accountName} 測試身分`} onClick={()=>onRemoveIdentity(user.id)}><X size={15}/></button></div>)}</div>}
+      {!adding&&<button className="outline-button full" type="button" onClick={()=>setAdding(true)}><Plus size={16}/>新增測試身分</button>}
+    </>}
+    {adding&&<div className="test-identity-picker"><div className="section-heading in-card"><div><h3>選擇要加入的成員</h3><p>只會加入可切換清單，不會改變群組角色。</p></div></div>{candidates.length===0?<p className="muted small">目前沒有其他成員可加入。請先在群組中新增測試成員。</p>:candidates.map((user)=><button type="button" key={user.id} className="test-identity-candidate" onClick={()=>{onAddIdentity(user.id);setAdding(false);}}><PersonAvatar name={user.nickname||user.accountName} small/><span><strong>{user.nickname||user.accountName}</strong><small>{roleFor(user.id)}</small></span><Plus size={16}/></button>)}<button className="text-action-button" type="button" onClick={()=>setAdding(false)}>取消</button></div>}
+    {actorId!==primaryUserId&&<button className="outline-button full identity-default-button" type="button" onClick={()=>onSwitch(primaryUserId)}>回到預設身分</button>}
+  </section></div>;
 }
 
 function RemoveActivityMemberModal({ activity, expenses, targetUid, nameFor, hasRepayments, onClose, onConfirm }) {
-  const oldIds=activity.participantIds;
-  const safeIds=expenses.filter((expense)=>{
-    if((expense.allocations?.[targetUid]||0)<=0)return false;
-    if(expense.lines?.length){
-      const affected=expense.lines.filter((line)=>(line.allocations?.[targetUid]||0)>0);
-      return affected.length>0&&affected.every((line)=>line.splitMode==='equal'&&sameMembers(line.participantIds,oldIds));
-    }
-    return expense.splitMode==='equal'&&sameMembers(expense.participantIds,oldIds);
-  }).map((expense)=>expense.id);
-  const unsafe=expenses.filter((expense)=>(expense.allocations?.[targetUid]||0)>0&&!safeIds.includes(expense.id));
-  const [selected,setSelected]=useState(()=>safeIds);
+  const related=expenses.filter((expense)=>(expense.allocations?.[targetUid]||0)>0);
+  const [selected,setSelected]=useState([]);
   const toggle=(id)=>setSelected((prev)=>prev.includes(id)?prev.filter((x)=>x!==id):[...prev,id]);
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal remove-activity-modal"><div className="modal-top"><h2>移出 {nameFor(targetUid)}</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div><p className="muted small">退出身分、舊分攤與付款紀錄分開處理。付款／墊付紀錄永遠不會因退出被刪除。</p>{hasRepayments&&<p className="field-hint"><LockKeyhole size={15}/>活動已有還款紀錄，目前不能重新計算舊分攤；仍可移出活動並保留既有帳目。</p>}<div className="picker-actions"><button type="button" disabled={hasRepayments} onClick={()=>setSelected(safeIds)}>全選可安全重算</button><button type="button" onClick={()=>setSelected([])}>清除選取</button></div><div className="remove-expense-list">{expenses.filter((e)=>(e.allocations?.[targetUid]||0)>0).map((expense)=>{const safe=safeIds.includes(expense.id);return <label className={`remove-expense-row ${!safe?'unsafe':''}`} key={expense.id}><input type="checkbox" checked={selected.includes(expense.id)} disabled={!safe||hasRepayments} onChange={()=>toggle(expense.id)}/><span><strong>{expense.title}</strong><small>{safe?'共同平均 · 可重新分攤':'特殊／自訂分攤 · 維持原狀'}</small></span><strong>{formatMoney(expense.allocations?.[targetUid]||0)}</strong></label>;})}</div>{unsafe.length>0&&<p className="muted tiny-note">{unsafe.length} 筆特殊分攤不會自動改動；需要時可之後逐筆修改。</p>}<button className="primary-button full" type="button" onClick={()=>onConfirm(selected)}>確認移出活動</button></section></div>;
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal remove-activity-modal"><div className="modal-top"><h2>移出 {nameFor(targetUid)}</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div>
+    <p className="muted small">{nameFor(targetUid)} 將不再參與之後的新支出。</p>
+    <div className="removal-meaning"><strong>哪些舊支出也要把 {nameFor(targetUid)} 的分攤移除？</strong><small>勾選＝不再計這個人的舊分攤；未勾選＝保留原本分攤。</small></div>
+    {hasRepayments&&<p className="field-hint"><LockKeyhole size={15}/>活動已有還款紀錄，為避免已開始的結算被改寫，目前只能移出活動並保留舊分攤。</p>}
+    <div className="picker-actions"><button type="button" disabled={hasRepayments} onClick={()=>setSelected(related.map((e)=>e.id))}>全選</button><button type="button" onClick={()=>setSelected([])}>清除選取</button></div>
+    <div className="remove-expense-list">{related.length===0?<p className="muted small">這位成員目前沒有既有分攤。</p>:related.map((expense)=><label className="remove-expense-row" key={expense.id}><input type="checkbox" checked={selected.includes(expense.id)} disabled={hasRepayments} onChange={()=>toggle(expense.id)}/><span><strong>{expense.title}</strong><small>{selected.includes(expense.id)?'將移除此人的舊分攤':'保留原本分攤'}</small></span><strong>{formatMoney(expense.allocations?.[targetUid]||0)}</strong></label>)}</div>
+    <p className="muted tiny-note">{nameFor(targetUid)} 過去的付款／墊付／找零紀錄不會被刪除。</p>
+    <button className="primary-button full" type="button" onClick={()=>onConfirm(selected)}>確認移出活動</button>
+  </section></div>;
+}
+
+function redistributeRemovedShare(allocations={}, targetUid, fallbackIds=[]) {
+  const original={...allocations};
+  const removed=original[targetUid]||0;
+  delete original[targetUid];
+  if(removed<=0)return original;
+  let recipients=Object.keys(original).filter((id)=>(original[id]||0)>0);
+  if(!recipients.length)recipients=fallbackIds.filter((id)=>id!==targetUid);
+  if(!recipients.length)return original;
+  const weights=recipients.map((id)=>Math.max(0,original[id]||0));
+  const weightSum=weights.reduce((a,b)=>a+b,0);
+  const extras=Object.fromEntries(recipients.map((id)=>[id,0]));
+  if(weightSum>0){
+    const ranked=recipients.map((id,i)=>{
+      const exact=removed*weights[i]/weightSum;
+      const base=Math.floor(exact);
+      extras[id]=base;
+      return{id,remainder:exact-base,index:i};
+    }).sort((a,b)=>b.remainder-a.remainder||a.index-b.index);
+    let left=removed-Object.values(extras).reduce((a,b)=>a+b,0);
+    for(let i=0;i<left;i+=1)extras[ranked[i%ranked.length].id]+=1;
+  }else{
+    const base=Math.floor(removed/recipients.length), rem=removed%recipients.length;
+    recipients.forEach((id,i)=>{extras[id]=base+(i<rem?1:0);});
+  }
+  recipients.forEach((id)=>{original[id]=(original[id]||0)+extras[id];});
+  return original;
+}
+
+function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[]) {
+  const next={...expense};
+  if(expense.lines?.length){
+    next.lines=expense.lines.map((line)=>{
+      if((line.allocations?.[targetUid]||0)<=0)return line;
+      const allocations=redistributeRemovedShare(line.allocations,targetUid,(line.participantIds||fallbackIds).filter((id)=>id!==targetUid));
+      return {...line,allocations,participantIds:Object.keys(allocations).filter((id)=>(allocations[id]||0)>0)};
+    });
+    const allocations={};
+    for(const line of next.lines)for(const [id,n] of Object.entries(line.allocations||{}))allocations[id]=(allocations[id]||0)+n;
+    next.allocations=allocations;
+    next.participantIds=Object.keys(allocations).filter((id)=>allocations[id]>0);
+  }else{
+    next.allocations=redistributeRemovedShare(expense.allocations,targetUid,(expense.participantIds||fallbackIds).filter((id)=>id!==targetUid));
+    next.participantIds=Object.keys(next.allocations).filter((id)=>next.allocations[id]>0);
+  }
+  next.updatedAt=now();
+  next.revision=(expense.revision||1)+1;
+  next.history=[...(expense.history||[]),{id:makeId(),type:'memberShareRemoved',at:now(),by:null,targetUid,beforeShare:expense.allocations?.[targetUid]||0,afterShare:0}];
+  return next;
+}
+
+function SwipeExpenseRow({ expense, canDelete, onOpen, onDelete, userName, actorId }) {
+  const [revealed,setRevealed]=useState(false);
+  const startX=useRef(0);
+  function down(e){startX.current=e.clientX;}
+  function up(e){const dx=e.clientX-startX.current;if(canDelete&&dx>45)setRevealed(true);else if(dx<-35)setRevealed(false);}
+  return <div className={`swipe-expense-row ${revealed?'revealed':''}`}><button className="swipe-expense-delete" type="button" disabled={!canDelete} onClick={()=>onDelete(expense)}>刪除</button><div className="swipe-expense-content" onPointerDown={down} onPointerUp={up}><ExpenseSummary expense={expense} userName={userName} actorId={actorId} onClick={()=>revealed?setRevealed(false):onOpen(expense.id)}/></div></div>;
 }
 
 function SuccessFlash({ text }) {
@@ -290,6 +357,15 @@ export default function App() {
     notify(`已新增 ${created.length} 位測試成員；現有活動不會自動加入。`);
     return'';
   }
+  function addTestIdentity(uid){
+    if(uid===primaryUserId)return;
+    setData((prev)=>({...prev,account:{...prev.account,testIdentityIds:[...new Set([...(prev.account?.testIdentityIds||[]),uid])]}}));
+    notify(`已加入測試身分：${data.users[uid]?.nickname||'成員'}`);
+  }
+  function removeTestIdentity(uid){
+    setData((prev)=>({...prev,currentUserId:prev.currentUserId===uid?(prev.account?.primaryUserId||prev.currentUserId):prev.currentUserId,account:{...prev.account,testIdentityIds:(prev.account?.testIdentityIds||[]).filter((id)=>id!==uid)}}));
+    notify('已從可切換測試身分清單移除。');
+  }
   function loadCostcoDemo(){const result=appendCostcoDemo(data,actorId);setData(result.store);goActivity(result.activityId,result.groupId);notify(result.added?'已載入 17 人好市多示範。':'已開啟示範。');}
 
   function toggleInvites(){if(!isOwner(group,actorId))return;updateGroup({...group,allowMemberInvites:!group.allowMemberInvites,policyHistory:[...(group.policyHistory||[]),{id:makeId(),type:'invitePolicy',by:actorId,at:now(),enabled:!group.allowMemberInvites}]});}
@@ -301,6 +377,20 @@ export default function App() {
     setModal(null);
   }
   function saveDraft(snapshot,draftId){if(!snapshot?.title&&!snapshot?.amount)return;const id=draftId||makeId();setData((prev)=>{const item={id,activityId,title:snapshot.title||'未命名草稿',amount:snapshot.amount||0,status:snapshot.status||'尚未完成分攤',updatedAt:now(),snapshot};const exists=prev.drafts.some((d)=>d.id===id);return{...prev,drafts:exists?prev.drafts.map((d)=>d.id===id?item:d):[item,...prev.drafts]};});}
+
+  function requestDeleteExpense(expense){
+    if(!canEditExpense(group,expense,actorId,data.settlements))return notify('這筆支出目前不能刪除。');
+    setModal({kind:'confirmDeleteExpense',expenseId:expense.id});
+  }
+  function confirmDeleteExpense(expenseId){
+    const expense=data.expenses.find((e)=>e.id===expenseId);
+    if(!expense||!canEditExpense(group,expense,actorId,data.settlements)){setModal(null);return notify('這筆支出目前不能刪除。');}
+    setData((prev)=>({...prev,
+      expenses:prev.expenses.filter((e)=>e.id!==expenseId),
+      activities:prev.activities.map((a)=>a.id===expense.activityId?{...a,auditHistory:[...(a.auditHistory||[]),{id:makeId(),type:'expenseDeleted',by:actorId,at:now(),message:`刪除支出「${expense.title}」 ${formatMoney(expense.amount)}。`,notifyUids:a.participantIds.filter((id)=>id!==actorId)}]}:a)
+    }));
+    setModal(null);notify('支出已刪除，活動修改紀錄已保留。');
+  }
 
   function requestPayment(transfer,amount,method,meta){setData((prev)=>({...prev,settlements:[...prev.settlements,{id:makeId(),activityId,fromUid:actorId,toUid:transfer.toUid,amount,method,methodOther:meta.other,note:meta.note,paidDate:meta.date,status:'pending',createdBy:actorId,createdAt:now(),events:[{type:'pending',by:actorId,at:now()}]}]}));setModal(null);notify(`已記錄付款，等待${nameFor(transfer.toUid)}確認。`);}
   function confirmPayment(s){if(s.toUid!==actorId||s.status!=='pending')return;setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id?{...x,status:'confirmed',confirmedAt:now(),events:[...x.events,{type:'confirmed',by:actorId,at:now()}]}:x)}));notify('已確認收到款項。');}
@@ -370,11 +460,11 @@ export default function App() {
     const newIds=oldIds.filter((id)=>id!==uid);
     const selected=new Set(activitySettlements.length?[]:selectedExpenseIds);
     setData((prev)=>({...prev,
-      activities:prev.activities.map((a)=>a.id===activity.id?{...a,participantIds:newIds,memberReviewIds:(a.memberReviewIds||[]).filter((id)=>id!==uid),auditHistory:[...(a.auditHistory||[]),{id:makeId(),type:'memberRemoved',by:actorId,at:now(),message:`${nameFor(uid)} 已移出活動，${oldIds.length} → ${newIds.length} 人；${selected.size} 筆既有共同支出重新分攤。`,notifyUids:newIds}]}:a),
-      expenses:prev.expenses.map((e,i)=>e.activityId===activity.id&&selected.has(e.id)?recalcExpenseForActivity(e,oldIds,newIds,i):e)
+      activities:prev.activities.map((a)=>a.id===activity.id?{...a,participantIds:newIds,memberReviewIds:(a.memberReviewIds||[]).filter((id)=>id!==uid),auditHistory:[...(a.auditHistory||[]),{id:makeId(),type:'memberRemoved',by:actorId,at:now(),message:`${nameFor(uid)} 已移出活動；${selected.size} 筆舊支出不再計其分攤。`,notifyUids:newIds}]}:a),
+      expenses:prev.expenses.map((e)=>e.activityId===activity.id&&selected.has(e.id)?{...recalcExpenseRemovingMember(e,uid,newIds),history:[...(recalcExpenseRemovingMember(e,uid,newIds).history||[]).map((h)=>h.by===null?{...h,by:actorId}:h)]}:e)
     }));
     setModal(null);
-    notify(selected.size?'已移出活動；勾選的共同支出已重新分攤，其餘舊帳保留。':'已移出活動；既有分攤與付款紀錄維持原狀。');
+    notify(selected.size?'已移出活動；勾選的舊分攤已移除並重新分配。':'已移出活動；所有既有分攤維持原狀。');
   }
 
   const editingExpense=modal?.kind==='expense'&&modal.expenseId?data.expenses.find((e)=>e.id===modal.expenseId):null;
@@ -422,7 +512,7 @@ export default function App() {
       {screen==='activity'&&activity&&group&&<>
         <div className="activity-topbar"><button className="icon-button" type="button" onClick={()=>{if(navigationOrigin==='notifications'){setNavigationOrigin(null);setScreen('notifications');}else goGroup(group.id);}}><ArrowLeft size={21}/></button><div className="activity-title"><small>{group.name}</small><strong>{activity.title}</strong></div><div className="activity-top-actions">{activity.participantIds.includes(actorId)&&canInvite&&<button className="icon-button" type="button" aria-label="邀請朋友" onClick={()=>setModal({kind:'invite'})}><UserRoundPlus size={20}/></button>}{group.memberIds.includes(actorId)&&<button className="icon-button" type="button" aria-label="活動設定" onClick={()=>setScreen('activitySettings')}><Settings2 size={20}/></button>}</div></div>
         {!activity.participantIds.includes(actorId)&&<div className="info-card historical-ledger-notice"><Info size={17}/><p>你已退出這個活動；目前只顯示與你有關的既有帳目與結算。</p></div>}
-        {tab==='expenses'&&<ExpensesTab activity={activity} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} drafts={activity.participantIds.includes(actorId)?data.drafts.filter((d)=>d.activityId===activity.id):[]} actorId={actorId} nameFor={nameFor} canAddExpense={activity.participantIds.includes(actorId)} finances={finalFinance} filter={expenseFilter} setFilter={setExpenseFilter} locked={lockedActivity} onExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})} onAdd={()=>setModal({kind:'expense'})} onDraft={(id)=>setModal({kind:'expense',draftId:id})} onDiscardDraft={(id)=>setData((prev)=>({...prev,drafts:prev.drafts.filter((d)=>d.id!==id)}))} onReview={()=>setScreen('activityMembers')}/>} 
+        {tab==='expenses'&&<ExpensesTab activity={activity} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} drafts={activity.participantIds.includes(actorId)?data.drafts.filter((d)=>d.activityId===activity.id):[]} actorId={actorId} nameFor={nameFor} canAddExpense={activity.participantIds.includes(actorId)} canDeleteExpense={(e)=>canEditExpense(group,e,actorId,data.settlements)} finances={finalFinance} filter={expenseFilter} setFilter={setExpenseFilter} locked={lockedActivity} onExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})} onDeleteExpense={requestDeleteExpense} onAdd={()=>setModal({kind:'expense'})} onDraft={(id)=>setModal({kind:'expense',draftId:id})} onDiscardDraft={(id)=>setData((prev)=>({...prev,drafts:prev.drafts.filter((d)=>d.id!==id)}))} onReview={()=>setScreen('activityMembers')}/>} 
         {tab==='ledger'&&<MemberLedger participantIds={activity.participantIds.includes(actorId)?ledgerParticipantIds:[actorId]} users={Object.fromEntries(ledgerParticipantIds.map((id)=>[id,{...data.users[id],nickname:nameFor(id)}]))} actorId={actorId} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} settlements={activity.participantIds.includes(actorId)?activitySettlements:activitySettlements.filter((x)=>x.fromUid===actorId||x.toUid===actorId)} onOpenExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})}/>} 
         {tab==='settlements'&&<SettlementTab activity={activity} group={group} actorId={actorId} nameFor={nameFor} expenses={activityExpenses} settlements={activitySettlements} baseBalances={finances.balances} baseProjected={finances.projected} finalFinance={finalFinance} onUpdateActivity={updateActivity} onPay={(transfer)=>setModal({kind:'payment',transfer})} onConfirm={confirmPayment} onIssue={(settlement)=>setModal({kind:'issue',settlement})} onAll={()=>setScreen('allSettlements')}/>} 
       </>}
@@ -447,11 +537,12 @@ export default function App() {
     {modal?.kind==='addActivityMemberChoice'&&<ConfirmModal title={`將 ${nameFor(modal.targetUid)} 加入活動`} confirmText={`將共同支出改為 ${activity.participantIds.length+1} 人分攤`} cancelText="稍後更改，維持原狀" onClose={()=>addActivityMember(modal.targetUid,false)} onConfirm={()=>addActivityMember(modal.targetUid,true)}><p>這個活動目前已有 {activityExpenses.length} 筆支出。只有「全活動成員共同平均」的既有支出會安全重新計算；特殊分攤不會被擅自改動。</p>{activitySettlements.length>0&&<p className="field-hint"><LockKeyhole size={15}/>活動已開始結算，現在只能維持原狀，稍後再重新檢查。</p>}</ConfirmModal>}
     {modal?.kind==='reviewMember'&&<ConfirmModal title={`重新檢查 ${nameFor(modal.targetUid)}`} confirmText="套用至既有共同支出" cancelText="維持原狀，不再提醒" onClose={()=>{resolveMemberReview(modal.targetUid,false);setModal(null);}} onConfirm={()=>{resolveMemberReview(modal.targetUid,true);setModal(null);}}><p>如果這位成員原本就應該參與前面的共同支出，可以重新計算；如果是中途加入，維持原狀即可。</p></ConfirmModal>}
     {modal?.kind==='removeActivityMember'&&activity&&<RemoveActivityMemberModal activity={activity} expenses={activityExpenses} targetUid={modal.targetUid} nameFor={nameFor} hasRepayments={activitySettlements.length>0} onClose={()=>setModal(null)} onConfirm={(selected)=>confirmRemoveActivityMember(modal.targetUid,selected)}/>}
-    {modal?.kind==='switchIdentity'&&<TestIdentityModal users={data.users} groups={data.groups} actorId={actorId} primaryUserId={primaryUserId} nameFor={nameFor} onClose={()=>setModal(null)} onSwitch={(uid)=>{setData((prev)=>({...prev,currentUserId:uid,account:{...prev.account,primaryUserId:prev.account?.primaryUserId||actorId}}));setModal(null);setGroupId(null);setActivityId(null);setScreen('home');setTab('expenses');notify(`已切換測試身分：${data.users[uid]?.nickname||'成員'}`);}}/>}
+    {modal?.kind==='switchIdentity'&&<TestIdentityModal users={data.users} groups={data.groups} actorId={actorId} primaryUserId={primaryUserId} testIdentityIds={data.account?.testIdentityIds||[]} onClose={()=>setModal(null)} onAddIdentity={addTestIdentity} onRemoveIdentity={removeTestIdentity} onSwitch={(uid)=>{if(uid!==primaryUserId&&!(data.account?.testIdentityIds||[]).includes(uid))return;setData((prev)=>({...prev,currentUserId:uid}));setModal(null);setGroupId(null);setActivityId(null);setScreen('home');setTab('expenses');notify(`已切換測試身分：${data.users[uid]?.nickname||'成員'}`);}}/>}
+    {modal?.kind==='confirmDeleteExpense'&&(()=>{const target=data.expenses.find((e)=>e.id===modal.expenseId);return target?<ConfirmModal danger title={`刪除「${target.title}」？`} confirmText="確認刪除" cancelText="取消" onClose={()=>setModal(null)} onConfirm={()=>confirmDeleteExpense(target.id)}><p>{formatMoney(target.amount)}</p><p>刪除後，這筆支出將不再計入活動總額、成員帳目與結算；刪除動作會保留在活動修改紀錄。</p></ConfirmModal>:null;})()}
     {modal?.kind==='payment'&&<PaymentModal transfer={modal.transfer} users={data.users} nameFor={nameFor} onClose={()=>setModal(null)} onSubmit={(amount,method,meta)=>requestPayment(modal.transfer,amount,method,meta)}/>} 
     {modal?.kind==='issue'&&<IssueModal settlement={modal.settlement} nameFor={nameFor} onClose={()=>setModal(null)} onSubmit={(reason,note)=>disputePayment(modal.settlement,reason,note)}/>} 
     {modal?.kind==='expense'&&activity&&<ExpenseForm key={editingExpense?.id||draftExpense?.id||'new'} activity={activity} users={Object.fromEntries(activity.participantIds.map((id)=>[id,{...data.users[id],nickname:nameFor(id)}]))} actorId={actorId} expense={editingExpense} draft={draftExpense} remainderOffset={activityExpenses.length} onClose={()=>setModal(null)} onDraft={(snapshot,id)=>saveDraft(snapshot,id)} onSave={(fields,id)=>saveExpense(fields,editingExpense,id)}/>} 
-    {detailExpense&&<ExpenseDetail expense={detailExpense} actorId={actorId} userName={nameFor} editable={canEditExpense(group,detailExpense,actorId,data.settlements)} locked={lockedActivity} onClose={()=>setModal(null)} onEdit={()=>setModal({kind:'expense',expenseId:detailExpense.id})}/>} 
+    {detailExpense&&<ExpenseDetail expense={detailExpense} actorId={actorId} userName={nameFor} editable={canEditExpense(group,detailExpense,actorId,data.settlements)} deletable={canEditExpense(group,detailExpense,actorId,data.settlements)} locked={lockedActivity} onClose={()=>setModal(null)} onEdit={()=>setModal({kind:'expense',expenseId:detailExpense.id})} onDelete={()=>requestDeleteExpense(detailExpense)}/>} 
   </div>;
 }
 
@@ -511,11 +602,37 @@ function ActivityMembers({ activity, group, nameFor, canManage, onBack, onAdd, o
   return <><button className="back-link" type="button" onClick={onBack}><ArrowLeft size={17}/>活動設定</button><div className="page-title-row"><div><h1>活動成員</h1><p>{activity.participantIds.length} 人參與</p></div></div>{activity.memberReviewIds?.length>0&&<section className="content-card review-card"><h2 className="card-section-title">待重新檢查</h2>{activity.memberReviewIds.map((uid)=><div className="member-row" key={uid}><PersonAvatar name={nameFor(uid)} small/><span>{nameFor(uid)}</span><button className="small-action" type="button" disabled={!canManage} onClick={()=>onReview(uid)}>重新檢查</button></div>)}</section>}<section className="content-card">{activity.participantIds.map((uid)=><div className="member-row" key={uid}><PersonAvatar name={nameFor(uid)} small/><span>{nameFor(uid)}</span>{canManage&&<button className="small-action danger-text" type="button" onClick={()=>onRemove(uid)}>移出活動</button>}</div>)}</section>{remaining.length>0&&<section className="content-card"><div className="section-heading in-card"><div><h2>加入群組內成員</h2><p>可單獨加入，也可一次選多人後逐人設定是否套用舊支出。</p></div></div><div className="picker-actions"><button type="button" onClick={()=>setSelected([...remaining])}>全選</button><button type="button" onClick={()=>setSelected([])}>清除選取</button></div>{remaining.map((uid)=><div className="member-row selectable-member-row" key={uid}><button className={`member-select-dot ${selected.includes(uid)?'selected':''}`} type="button" onClick={()=>toggle(uid)} aria-label={`選取 ${nameFor(uid)}`}>{selected.includes(uid)&&<Check size={13}/>}</button><PersonAvatar name={nameFor(uid)} small/><span>{nameFor(uid)}</span><button className="small-action" disabled={!canManage} type="button" onClick={()=>onAdd(uid)}><Plus size={15}/>加入</button></div>)}{selected.length>0&&<button className="primary-button full" disabled={!canManage} type="button" onClick={()=>onAddMany(selected)}>批次加入 {selected.length} 人</button>}</section>}</>;
 }
 
-function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, filter, setFilter, locked, canAddExpense=true, onExpense, onAdd, onDraft, onDiscardDraft, onReview }) {
+function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, filter, setFilter, locked, canAddExpense=true, canDeleteExpense, onExpense, onDeleteExpense, onAdd, onDraft, onDiscardDraft, onReview }) {
+  const [query,setQuery]=useState('');
+  const [showTop,setShowTop]=useState(false);
+  useEffect(()=>{
+    const check=()=>setShowTop(window.scrollY>520);
+    check();window.addEventListener('scroll',check,{passive:true});
+    return()=>window.removeEventListener('scroll',check);
+  },[]);
   const myBalance=finances.balances?.[actorId]||0;
-  const visible=expenses.filter((e)=>filter==='all'||(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId));
+  const normalized=query.trim().toLocaleLowerCase('zh-TW');
+  const matchesSearch=(e)=>{
+    if(!normalized)return true;
+    const payerNames=(e.payments||[{uid:e.paidBy,amount:e.amount}]).map((p)=>nameFor(p.uid)).join(' ');
+    const lineNames=(e.lines||[]).map((line)=>line.title||'').join(' ');
+    const note=[e.note,e.memo,e.description].filter(Boolean).join(' ');
+    return [e.title,lineNames,payerNames,note].join(' ').toLocaleLowerCase('zh-TW').includes(normalized);
+  };
+  const visible=expenses.filter((e)=>{
+    const mine=(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId;
+    return (filter==='all'||mine)&&matchesSearch(e);
+  });
   const activityTotal=expenses.reduce((sum,e)=>sum+(e.amount||0),0);
-  return <><section className="my-summary-card"><small>我的帳目</small><strong>{myBalance>0?`我目前還有 ${formatMoney(myBalance)} 待收`:myBalance<0?`我目前還需要付 ${formatMoney(Math.abs(myBalance))}`:'目前已結清'}</strong><span className="secondary-total">活動總支出 {formatMoney(activityTotal)}</span></section>{activity.memberReviewIds?.length>0&&<button className="member-review-banner" type="button" onClick={onReview}><Info size={16}/><span>有 {activity.memberReviewIds.length} 位成員尚未套用至既有共同支出</span><ChevronRight size={16}/></button>}{drafts.length>0&&<section><div className="section-heading"><div><h2>草稿</h2><p>草稿不計入活動總額與結算。</p></div></div><div className="draft-list">{drafts.slice(0,3).map((d)=><article className="draft-card" key={d.id}><button type="button" className="draft-main" onClick={()=>onDraft(d.id)}><strong>{d.title}</strong><small>{d.status||'尚未完成'}</small><span>繼續編輯 <ChevronRight size={15}/></span></button><button className="icon-button" type="button" onClick={()=>onDiscardDraft(d.id)}><MoreHorizontal size={18}/></button></article>)}</div></section>}<div className="section-heading"><div><h2>支出紀錄</h2><p>點整張卡片查看我的帳目、付款與商品分攤。</p></div><span className="count-pill">{expenses.length} 筆</span></div>{expenses.length>0&&<div className="expense-sticky-tools"><div className="ledger-filters expense-filters"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>全部</button><button type="button" className={filter==='mine'?'active':''} onClick={()=>setFilter('mine')}>與我有關</button></div>{canAddExpense&&<button className="mini-add-expense" type="button" onClick={onAdd}><Plus size={15}/>新增支出</button>}</div>}{expenses.length===0?<EmptyState icon={ReceiptText} title="還沒有任何支出" detail={canAddExpense?"新增第一筆支出，Bopli 會自動計算每個人的分攤。":"目前沒有與你有關的歷史支出。"} action={canAddExpense?"新增第一筆支出":null} onAction={canAddExpense?onAdd:null}/>:<div className="card-list">{[...visible].reverse().map((e)=><ExpenseSummary key={e.id} expense={e} userName={nameFor} actorId={actorId} onClick={()=>onExpense(e.id)}/>)}</div>}{locked&&<div className="info-card"><LockKeyhole size={17}/><p>活動已有待確認／已確認／有爭議的還款紀錄，支出修改受到保護。</p></div>}</>;
+  return <><section className="my-summary-card" id="expense-page-top"><small>我的帳目</small><strong>{myBalance>0?`我目前還有 ${formatMoney(myBalance)} 待收`:myBalance<0?`我目前還需要付 ${formatMoney(Math.abs(myBalance))}`:'目前已結清'}</strong><span className="secondary-total">活動總支出 {formatMoney(activityTotal)}</span></section>
+    {activity.memberReviewIds?.length>0&&<button className="member-review-banner" type="button" onClick={onReview}><Info size={16}/><span>有 {activity.memberReviewIds.length} 位成員尚未套用至既有共同支出</span><ChevronRight size={16}/></button>}
+    {drafts.length>0&&<section><div className="section-heading"><div><h2>草稿</h2><p>草稿不計入活動總額與結算。</p></div></div><div className="draft-list">{drafts.slice(0,3).map((d)=><article className="draft-card" key={d.id}><button type="button" className="draft-main" onClick={()=>onDraft(d.id)}><strong>{d.title}</strong><small>{d.status||'尚未完成'}</small><span>繼續編輯 <ChevronRight size={15}/></span></button><button className="icon-button" type="button" onClick={()=>onDiscardDraft(d.id)}><MoreHorizontal size={18}/></button></article>)}</div></section>}
+    <div className="section-heading"><div><h2>支出紀錄</h2><p>可搜尋支出名稱、商品、付款人與備註。</p></div><span className="count-pill">{expenses.length} 筆</span></div>
+    {expenses.length>0&&<><label className="ledger-search expense-search"><Search size={17}/><input type="search" value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="搜尋支出紀錄"/></label><div className="ledger-filters expense-filters"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>全部</button><button type="button" className={filter==='mine'?'active':''} onClick={()=>setFilter('mine')}>與我有關</button></div>{canAddExpense&&<button className="mini-add-expense" type="button" onClick={onAdd}><Plus size={15}/>新增支出</button>}</>}
+    {expenses.length===0?<EmptyState icon={ReceiptText} title="還沒有任何支出" detail={canAddExpense?"新增第一筆支出，Bopli 會自動計算每個人的分攤。":"目前沒有與你有關的歷史支出。"} action={canAddExpense?"新增第一筆支出":null} onAction={canAddExpense?onAdd:null}/>:visible.length===0?<EmptyState icon={Search} title="找不到符合的支出" detail="請調整搜尋關鍵字或篩選條件。"/>:<div className="card-list expense-swipe-list">{[...visible].reverse().map((e)=><SwipeExpenseRow key={e.id} expense={e} userName={nameFor} actorId={actorId} canDelete={Boolean(canDeleteExpense?.(e))} onOpen={onExpense} onDelete={onDeleteExpense}/>)}</div>}
+    {showTop&&<button className="back-to-top-button" type="button" aria-label="返回支出頁頂部" onClick={()=>document.getElementById('expense-page-top')?.scrollIntoView({behavior:'smooth',block:'start'})}><ArrowUp size={20}/></button>}
+    {locked&&<div className="info-card"><LockKeyhole size={17}/><p>活動已有待確認／已確認／有爭議的還款紀錄，支出修改與刪除受到保護。</p></div>}
+  </>;
 }
 
 function SettlementTab({ activity, group, actorId, nameFor, expenses, settlements, baseBalances, baseProjected, finalFinance, onUpdateActivity, onPay, onConfirm, onIssue, onAll }) {
