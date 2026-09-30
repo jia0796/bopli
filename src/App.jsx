@@ -167,8 +167,11 @@ function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[],actorUid=n
     next.allocations=allocations;
     next.participantIds=Object.keys(allocations).filter((id)=>allocations[id]>0);
   }else{
-    next.allocations=redistributeRemovedShare(expense.allocations,targetUid,(expense.participantIds||fallbackIds).filter((id)=>id!==targetUid));
+    const expenseRecipients=(expense.participantIds||[]).filter((id)=>id!==targetUid);
+    next.allocations=redistributeRemovedShare(expense.allocations,targetUid,expenseRecipients.length?expenseRecipients:fallbackIds);
     next.participantIds=Object.keys(next.allocations).filter((id)=>next.allocations[id]>0);
+    if(expense.splitMode==='custom')next.customAmounts={...next.allocations};
+    if(expense.splitMode==='ratio')next.ratios=Object.fromEntries(Object.entries(expense.ratios||{}).filter(([id])=>id!==targetUid));
   }
   next.updatedAt=now();
   next.revision=(expense.revision||1)+1;
