@@ -159,7 +159,7 @@ function recalcExpenseRemovingMember(expense,targetUid,fallbackIds=[],actorUid=n
   if(expense.lines?.length){
     next.lines=expense.lines.map((line)=>{
       if((line.allocations?.[targetUid]||0)<=0)return line;
-      const allocations=redistributeRemovedShare(line.allocations,targetUid,(line.participantIds||fallbackIds).filter((id)=>id!==targetUid));
+      const lineRecipients=(line.participantIds||[]).filter((id)=>id!==targetUid);\n      const allocations=redistributeRemovedShare(line.allocations,targetUid,lineRecipients.length?lineRecipients:fallbackIds);
       return {...line,allocations,participantIds:Object.keys(allocations).filter((id)=>(allocations[id]||0)>0)};
     });
     const allocations={};
