@@ -77,8 +77,7 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
     await page.getByRole('button', { name: '確認移出活動' }).click();
     await expect(page.getByText('1 人參與')).toBeVisible();
 
-    await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /活動/ }).first().click();
+    await page.getByRole('button', { name: '活動' }).click();
     await expect(page.getByText('午餐')).toBeVisible();
     await page.getByRole('button', { name: '帳目', exact: true }).click();
     await expect(page.getByText('小安')).toBeVisible();
