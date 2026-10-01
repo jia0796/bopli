@@ -119,3 +119,20 @@ test('round-up extra credit is included in member ledger and balances',()=>{
   assert.equal(ledgers.b.balance,68);
   assert.equal(Object.values(ledgers).reduce((sum,l)=>sum+l.balance,0),0);
 });
+
+test('round-up preview, locked ledger and repayments share the same allocation source',()=>{
+  const ids=['a','b','c'];
+  const a={id:'a',groupId:'g',participantIds:ids};
+  const expenses=Array.from({length:3},(_,i)=>({id:'e'+i,activityId:'a',amount:100,paidBy:'c',splitMode:'equal',participantIds:ids,allocations:{a:34,b:33,c:33}}));
+  const config={mode:'roundUp',receiverMode:'selected',receiverUids:['c']};
+  const settlements=[{id:'s',activityId:'a',fromUid:'b',toUid:'c',amount:100,status:'confirmed'}];
+  const preview=activityFinance(a,expenses,settlements,config);
+  const locked=activityFinance({...a,roundingConfig:config,roundingLockedAt:'2026-10-01'},expenses,settlements);
+  assert.deepEqual(preview,locked);
+  assert.deepEqual(locked.balances,{a:-102,b:-2,c:104});
+  assert.deepEqual(locked.unroundedBalances,{a:-102,b:1,c:101});
+  const ledgers=memberLedger(ids,expenses,settlements,locked);
+  assert.equal(ledgers.c.share,102);
+  assert.equal(ledgers.c.roundingCredit,6);
+  assert.equal(ledgers.c.balance,104);
+});
