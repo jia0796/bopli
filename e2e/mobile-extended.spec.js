@@ -53,7 +53,7 @@ async function addSwitchableIdentityAndSwitch(page, name) {
     await page.getByRole('button', { name: new RegExp(name) }).click();
   }
   await page.locator('.test-identity-row').filter({hasText:name}).click();
-  await expect(page.getByText(`測試身分：${name}`)).toBeVisible();
+  await expect(page.locator('.test-version-strip')).toContainText(`測試身分：${name}`);
 }
 
 test.describe('Bopli 2.3 mobile extended journeys', () => {
@@ -184,7 +184,8 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     // Build a completely separate second group and activity.
     await page.getByRole('button', { name: '活動設定' }).click();
     await page.getByRole('button', { name: /活動/ }).first().click();
-    await page.locator('.group-topbar > .icon-button').first().click();
+    await page.getByRole('button', { name: '返回群組' }).click();
+    await page.getByRole('button', { name: '返回首頁' }).click();
     await createGroup(page, '第二群組');
     await addTestMembers(page, ['B02','B03']);
     await createActivity(page, '第二活動');
