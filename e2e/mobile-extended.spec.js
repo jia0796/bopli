@@ -122,7 +122,7 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
     await page.getByRole('button', { name: '回到預設身分' }).click();
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
     await page.getByRole('button', { name: '結算', exact: true }).click();
-    await expect(page.getByText('待我確認')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '待我確認', exact: true })).toBeVisible();
     await page.getByRole('button', { name: /確認已收到/ }).click();
     await expect(page.getByText('目前已結清')).toBeVisible();
   });
