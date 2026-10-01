@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ConfirmModal, EmptyState } from './AppPrimitives.jsx';
+import { ConfirmModal, EmptyState, PersonAvatar, SwipeMemberRow } from './AppPrimitives.jsx';
 import { ReceiptText } from 'lucide-react';
 
 describe('shared UI primitives', () => {
@@ -18,5 +18,12 @@ describe('shared UI primitives', () => {
     render(<EmptyState icon={ReceiptText} title="尚未開始記帳" detail="新增第一筆支出後才會顯示結算狀態。"/>);
     expect(screen.getByText('尚未開始記帳')).toBeInTheDocument();
     expect(screen.queryByText('目前已結清')).not.toBeInTheDocument();
+  });
+
+  it('renders extracted avatar and swipe member primitives without missing runtime dependencies', () => {
+    render(<><PersonAvatar name="Cayden"/><SwipeMemberRow memberId="u1" name="小安" role="一般成員" canRemove={true} onOpen={vi.fn()} onRemove={vi.fn()}/></>);
+    expect(screen.getByText('C')).toBeInTheDocument();
+    expect(screen.getByText('小安')).toBeInTheDocument();
+    expect(screen.getByText('一般成員')).toBeInTheDocument();
   });
 });
