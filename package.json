@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "npm run test:unit && npm run test:stress && npm run test:ui",
-    "test:unit": "node --test src/lib/domain.test.js src/lib/ledger.test.js src/lib/money.test.js src/lib/rounding.test.js src/lib/selectors.test.js src/lib/workflow.test.js",
+    "test:unit": "node --test src/lib/domain.test.js src/lib/ledger.test.js src/lib/lifecycle.test.js src/lib/money.test.js src/lib/rounding.test.js src/lib/selectors.test.js src/lib/workflow.test.js",
     "test:ui": "vitest run src/components/*.test.jsx src/lib/store.migration.test.js src/lib/useStorePersistence.test.jsx",
     "test:stress": "node --test src/lib/stress.test.js"
   },
