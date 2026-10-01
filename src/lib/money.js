@@ -167,11 +167,19 @@ export function calculateBalances(participantIds, expenses, settlements = [], in
       balances[uid] -= share;
     }
   }
+  return applyRepayments(balances, settlements, includePending);
+}
+
+/** Reserve pending and disputed amounts without treating them as confirmed payments. */
+export function applyRepayments(baseBalances, settlements = [], includePending = false) {
+  const balances = { ...baseBalances };
   assertUniqueSettlementIds(settlements);
-  for (const settlement of settlements) {
+  // Confirmed first makes validation independent of which pending record was confirmed first.
+  const ordered = [...settlements].sort((a, b) => Number(b.status === 'confirmed') - Number(a.status === 'confirmed'));
+  for (const settlement of ordered) {
     if (!['pending', 'confirmed', 'disputed'].includes(settlement.status)) continue;
     assertSettlement(settlement);
-    if (settlement.status !== 'confirmed' && !(includePending && settlement.status === 'pending')) continue;
+    if (settlement.status !== 'confirmed' && !includePending) continue;
     if (!(settlement.fromUid in balances) || !(settlement.toUid in balances)) {
       throw new Error('還款涉及非活動成員。');
     }

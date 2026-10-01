@@ -755,3 +755,14 @@ body{background:#f3eee9;color:var(--ink)}
   .settlement-manual-row .field:nth-of-type(3),
   .settlement-manual-row>.text-action-button{grid-column:1}
 }
+
+/* All input dialogs share the same visible-viewport and scrolling contract. */
+.modal { min-height:0; scroll-padding-top:68px; scroll-padding-bottom:80px; }
+.modal-top { position:sticky; top:-1px; z-index:3; background:var(--surface); flex-shrink:0; }
+.modal > .primary-button:last-child,
+.modal > form > .primary-button:last-child,
+.modal .confirm-actions { position:sticky; bottom:0; z-index:2; flex-shrink:0; }
+.modal .confirm-actions { background:var(--surface); padding-top:8px; }
+.modal input,.modal textarea { scroll-margin-top:72px; scroll-margin-bottom:88px; }
+.split-settings-modal { min-height:min(88dvh,calc(var(--visual-viewport-height,100dvh) - 8px)); }
+.settlement-plan-modal > * { flex-shrink:0; }

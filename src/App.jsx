@@ -15,6 +15,7 @@ import {
   MemberDetail, NotificationScreen, ProfileScreen,
 } from './components/SecondaryScreens.jsx';
 import { APP_LABEL } from './version.js';
+import { activityFinance } from './lib/activityFinance.js';
 import { appendCostcoDemo } from './lib/demo.js';
 import { buildSettlementPlan, calculateBalances, formatMoney, splitEqualRotating, suggestTransfers } from './lib/money.js';
 import {
@@ -24,6 +25,7 @@ import {
 import { applyRoundingToBalances, buildRoundingModel } from './lib/rounding.js';
 import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
 import { useStorePersistence } from './lib/useStorePersistence.js';
+import { useModalViewport } from './lib/useModalViewport.js';
 import { buildStoreIndexes, itemsFor } from './lib/selectors.js';
 import { activityDeletionStatus, deleteActivityCascade, deleteGroupCascade, groupDeletionStatus } from './lib/lifecycle.js';
 
@@ -346,6 +348,7 @@ export default function App() {
   const tabScrollPositions=useRef({expenses:0,ledger:0,settlements:0});
 
   useStorePersistence(data,{delay:300,onError:setStorageError});
+  useModalViewport();
   useEffect(()=>{ tabScrollPositions.current={expenses:0,ledger:0,settlements:0};window.scrollTo({top:0,behavior:'instant'}); },[screen,groupId,activityId]);
   useEffect(()=>{
     const viewport=window.visualViewport;
@@ -378,7 +381,7 @@ export default function App() {
   function nameFor(uid,g=group){ return g?.nicknames?.[uid] || data.users[uid]?.nickname || '未知成員'; }
   function notify(text){setToast(text);}
   function updateGroup(next){setData((prev)=>({...prev,groups:prev.groups.map((g)=>g.id===next.id?next:g)}));}
-  function updateActivity(next){setData((prev)=>({...prev,activities:prev.activities.map((a)=>a.id===next.id?next:a)}));}
+  function updateActivity(next){if(!canManageActivity(group,actorId))return;setData((prev)=>({...prev,activities:prev.activities.map((a)=>a.id===next.id?next:a)}));}
   function goHome(){setScreen('home');setGroupId(null);setActivityId(null);setModal(null);}
   function goGroup(id){setGroupId(id);setActivityId(null);setScreen('group');setModal(null);setData((prev)=>({...prev,groups:prev.groups.map((g)=>g.id===id?{...g,lastUsedAt:now()}:g)}));}
   function goActivity(id,gid=groupId,initialTab='expenses'){setNavigationOrigin(null);setGroupId(gid);setActivityId(id);setTab(initialTab);setScreen('activity');setModal(null);}
@@ -398,18 +401,11 @@ export default function App() {
     if(!a)return {balances:{},suggested:[],projected:{},error:''};
     const expenses=itemsFor(indexes.expensesByActivityId,a.id);
     const settlements=itemsFor(indexes.settlementsByActivityId,a.id);
-    try{const balances=calculateBalances(a.participantIds,expenses,settlements);const projected=calculateBalances(a.participantIds,expenses,settlements,true);return{balances,suggested:suggestTransfers(projected),projected,error:''};}catch(err){return{balances:{},suggested:[],projected:{},error:err.message};}
+    try{return activityFinance(a,expenses,settlements);}catch(err){return{balances:{},suggested:[],projected:{},transfers:[],projectedBalances:{},status:'unsettled',error:err.message};}
   }
   const finances=useMemo(()=>financesFor(activity),[activity,indexes]);
   const roundingModel=useMemo(()=>activity?buildRoundingModel(activity.participantIds,activityExpenses):null,[activity,activityExpenses]);
-  const finalFinance=useMemo(()=>{
-    if(!activity||!roundingModel)return{balances:finances.balances,projectedBalances:finances.projected,transfers:finances.suggested,extraPool:0};
-    const config=activity.roundingLockedAt?(activity.roundingConfig||{}):{mode:'current'};
-    const confirmed=applyRoundingToBalances(finances.balances,roundingModel,config);
-    const projected=applyRoundingToBalances(finances.projected,roundingModel,config);
-    const plan=buildSettlementPlan(projected.balances,activity.settlementManualTransfers||[],{clamp:true});
-    return {...confirmed,projectedBalances:projected.balances,transfers:plan.transfers};
-  },[activity,roundingModel,finances]);
+  const finalFinance=finances;
   const ledgerParticipantIds=useMemo(()=>{
     if(!activity)return[];
     const current=[...activity.participantIds];
@@ -545,6 +541,9 @@ export default function App() {
   }
 
   function requestPayment(transfer,amount,method,meta){
+    const current=mergeSettlementTransfers(finalFinance.transfers).find((t)=>t.fromUid===actorId&&t.toUid===transfer.toUid);
+    if(transfer.fromUid!==actorId||!current||!Number.isSafeInteger(amount)||amount<=0||amount>current.amount)return notify('付款金額超過目前可支付金額，請重新檢查。');
+    transfer=current;
     let left=amount;
     const manualConsumption=[];
     for(const part of transfer.manualParts||[]){
@@ -564,24 +563,14 @@ export default function App() {
   }
   function confirmPayment(s){if(s.toUid!==actorId||s.status!=='pending')return;setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id?{...x,status:'confirmed',confirmedAt:now(),events:[...x.events,{type:'confirmed',by:actorId,at:now()}]}:x)}));notify('已確認收到款項。');}
   function disputePayment(s,reason,note){
-    setData((prev)=>{
-      let activities=prev.activities;
-      if((s.manualPlanConsumption||[]).length){
-        activities=prev.activities.map((a)=>{
-          if(a.id!==s.activityId)return a;
-          const rows=[...(a.settlementManualTransfers||[])];
-          for(const part of s.manualPlanConsumption){
-            let index=rows.findIndex((row)=>row.id===part.id);
-            if(index<0)index=rows.findIndex((row)=>row.fromUid===s.fromUid&&row.toUid===s.toUid);
-            if(index>=0)rows[index]={...rows[index],amount:rows[index].amount+part.amount};
-            else rows.push({id:part.id||makeId(),fromUid:s.fromUid,toUid:s.toUid,amount:part.amount});
-          }
-          return {...a,settlementManualTransfers:rows};
-        });
-      }
-      return {...prev,activities,settlements:prev.settlements.map((x)=>x.id===s.id?{...x,status:'disputed',updatedAt:now(),issue:{reason,note},events:[...x.events,{type:'disputed',by:actorId,at:now(),reason,note}]}:x)};
-    });
+    if(s.toUid!==actorId||s.status!=='pending')return;
+    setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id&&x.status==='pending'?{...x,status:'disputed',updatedAt:now(),issue:{reason,note},events:[...(x.events||[]),{type:'disputed',by:actorId,at:now(),reason,note}]}:x)}));
     setModal(null);notify('已回報問題，等待付款人處理。');
+  }
+  function resubmitPayment(s){
+    if(s.fromUid!==actorId||s.status!=='disputed')return;
+    setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id&&x.status==='disputed'?{...x,status:'pending',updatedAt:now(),events:[...(x.events||[]),{type:'resubmitted',by:actorId,at:now()}]}:x)}));
+    notify('已重新送出，等待收款人確認。');
   }
 
   function changeMyNickname(next){if(!group)return'找不到群組。';if(group.memberIds.some((id)=>id!==actorId&&nameFor(id,group).toLocaleLowerCase('zh-TW')===next.toLocaleLowerCase('zh-TW')))return'這個群組已有人使用相同暱稱。';const old=nameFor(actorId,group);updateGroup({...group,nicknames:{...(group.nicknames||{}),[actorId]:next},policyHistory:[...(group.policyHistory||[]),{id:makeId(),type:'nickname',by:actorId,at:now(),from:old,to:next}]});notify('群組暱稱已更新，所有活動同步顯示。');setModal(null);return'';}
@@ -700,9 +689,9 @@ export default function App() {
       {screen==='activity'&&activity&&group&&<>
         <div className="activity-topbar"><button className="icon-button" type="button" aria-label={navigationOrigin==='notifications'?'返回通知中心':'返回群組'} onClick={()=>{if(navigationOrigin==='notifications'){setNavigationOrigin(null);setScreen('notifications');}else goGroup(group.id);}}><ArrowLeft size={21}/></button><div className="activity-title"><small>{group.name}</small><strong>{activity.title}</strong></div><div className="activity-top-actions">{canManage&&<button className="icon-button" type="button" aria-label="活動成員" onClick={()=>setScreen('activityMembers')}><UsersRound size={20}/></button>}{activity.participantIds.includes(actorId)&&canInvite&&<button className="icon-button" type="button" aria-label="邀請朋友" onClick={()=>setModal({kind:'invite'})}><UserRoundPlus size={20}/></button>}{group.memberIds.includes(actorId)&&<button className="icon-button" type="button" aria-label="活動設定" onClick={()=>setScreen('activitySettings')}><Settings2 size={20}/></button>}</div></div>
         {!activity.participantIds.includes(actorId)&&<div className="info-card historical-ledger-notice"><Info size={17}/><p>你已退出這個活動；目前只顯示與你有關的既有帳目與結算。</p></div>}
-        {tab==='expenses'&&<ExpensesTab activity={activity} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} drafts={activity.participantIds.includes(actorId)?data.drafts.filter((d)=>d.activityId===activity.id):[]} actorId={actorId} nameFor={nameFor} canAddExpense={activity.participantIds.includes(actorId)} canDeleteExpense={(e)=>canEditExpense(group,e,actorId,data.settlements)} finances={finalFinance} filter={expenseFilter} setFilter={setExpenseFilter} locked={lockedActivity} onExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})} onDeleteExpense={requestDeleteExpense} onAdd={()=>setModal({kind:'expense'})} onSettlement={()=>switchActivityTab('settlements')} onDraft={(id)=>setModal({kind:'expense',draftId:id})} onDiscardDraft={(id)=>setData((prev)=>({...prev,drafts:prev.drafts.filter((d)=>d.id!==id)}))} onReview={()=>setScreen('activityMembers')}/>} 
-        {tab==='ledger'&&<MemberLedger participantIds={activity.participantIds.includes(actorId)?ledgerParticipantIds:[actorId]} users={Object.fromEntries(ledgerParticipantIds.map((id)=>[id,{...data.users[id],nickname:nameFor(id)}]))} actorId={actorId} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} settlements={activity.participantIds.includes(actorId)?activitySettlements:activitySettlements.filter((x)=>x.fromUid===actorId||x.toUid===actorId)} onOpenExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})}/>} 
-        {tab==='settlements'&&<SettlementTab activity={activity} group={group} actorId={actorId} nameFor={nameFor} expenses={activityExpenses} settlements={activitySettlements} baseBalances={finances.balances} baseProjected={finances.projected} finalFinance={finalFinance} onUpdateActivity={updateActivity} onPay={(transfer)=>setModal({kind:'payment',transfer})} onConfirm={confirmPayment} onIssue={(settlement)=>setModal({kind:'issue',settlement})} onAll={()=>setScreen('allSettlements')}/>} 
+        {tab==='expenses'&&<ExpensesTab activity={activity} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} drafts={activity.participantIds.includes(actorId)?data.drafts.filter((d)=>d.activityId===activity.id):[]} actorId={actorId} nameFor={nameFor} canAddExpense={activity.participantIds.includes(actorId)} canDeleteExpense={(e)=>canEditExpense(group,e,actorId,data.settlements)} finances={finalFinance} activityStatus={finances.status} filter={expenseFilter} setFilter={setExpenseFilter} locked={lockedActivity} onExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})} onDeleteExpense={requestDeleteExpense} onAdd={()=>setModal({kind:'expense'})} onSettlement={()=>switchActivityTab('settlements')} onDraft={(id)=>setModal({kind:'expense',draftId:id})} onDiscardDraft={(id)=>setData((prev)=>({...prev,drafts:prev.drafts.filter((d)=>d.id!==id)}))} onReview={()=>setScreen('activityMembers')}/>} 
+        {tab==='ledger'&&<MemberLedger finances={finalFinance} participantIds={activity.participantIds.includes(actorId)?ledgerParticipantIds:[actorId]} users={Object.fromEntries(ledgerParticipantIds.map((id)=>[id,{...data.users[id],nickname:nameFor(id)}]))} actorId={actorId} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} settlements={activity.participantIds.includes(actorId)?activitySettlements:activitySettlements.filter((x)=>x.fromUid===actorId||x.toUid===actorId)} onOpenExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})}/>} 
+        {tab==='settlements'&&<SettlementTab activity={activity} group={group} actorId={actorId} nameFor={nameFor} expenses={activityExpenses} settlements={activitySettlements} baseBalances={finances.balances} baseProjected={finances.projected} finalFinance={finalFinance} onUpdateActivity={updateActivity} onPay={(transfer)=>setModal({kind:'payment',transfer})} onConfirm={confirmPayment} onIssue={(settlement)=>setModal({kind:'issue',settlement})} onResubmit={resubmitPayment} onAll={()=>setScreen('allSettlements')}/>} 
       </>}
     </main>
 
@@ -736,14 +725,8 @@ export default function App() {
   </div>;
 }
 
-function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, filter, setFilter, locked, canAddExpense=true, canDeleteExpense, onExpense, onDeleteExpense, onAdd, onSettlement, onDraft, onDiscardDraft, onReview }) {
+function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, activityStatus, filter, setFilter, locked, canAddExpense=true, canDeleteExpense, onExpense, onDeleteExpense, onAdd, onSettlement, onDraft, onDiscardDraft, onReview }) {
   const [query,setQuery]=useState('');
-  const [showTop,setShowTop]=useState(false);
-  useEffect(()=>{
-    const check=()=>setShowTop(window.scrollY>520);
-    check();window.addEventListener('scroll',check,{passive:true});
-    return()=>window.removeEventListener('scroll',check);
-  },[]);
   const myBalance=finances.balances?.[actorId]||0;
   const normalized=query.trim().toLocaleLowerCase('zh-TW');
   const matchesSearch=(e)=>{
@@ -758,7 +741,7 @@ function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, f
     return (filter==='all'||mine)&&matchesSearch(e);
   });
   const activityTotal=expenses.reduce((sum,e)=>sum+(e.amount||0),0);
-  const statusTitle=expenses.length===0?'尚未開始記帳':myBalance>0?`你要收 ${formatMoney(myBalance)}`:myBalance<0?`你要付 ${formatMoney(Math.abs(myBalance))}`:'已結清';
+  const statusTitle=activityStatus==='notStarted'?'尚未開始記帳':myBalance>0?`你要收 ${formatMoney(myBalance)}`:myBalance<0?`你要付 ${formatMoney(Math.abs(myBalance))}`:activityStatus==='settled'?'目前已結清':'目前沒有我的應收應付';
   const statusHint=expenses.length===0?'記下第一筆，Bopli 會自動算每個人的分攤。':myBalance===0?'目前沒有需要處理的款項。':'可以先記帳，最後再到結算一次處理。';
   return <><section className="activity-glance-card" id="expense-page-top"><div><small>你的狀態</small><strong>{statusTitle}</strong><span>{statusHint}</span></div><div className="activity-primary-actions">{canAddExpense&&<button className="primary-button" type="button" onClick={onAdd}><Plus size={16}/>記一筆</button>}{expenses.length>0&&<button className="outline-button" type="button" onClick={onSettlement}>去結算</button>}</div><small className="activity-total-note">活動總支出 {formatMoney(activityTotal)}</small></section>
     {activity.memberReviewIds?.length>0&&<button className="member-review-banner" type="button" onClick={onReview}><Info size={16}/><span>有 {activity.memberReviewIds.length} 位成員尚未套用至既有共同支出</span><ChevronRight size={16}/></button>}
@@ -766,14 +749,15 @@ function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, f
     <div className="section-heading"><div><h2>最近帳目</h2><p>{expenses.length?'需要時可搜尋或篩選。':'新增第一筆支出開始分帳。'}</p></div><span className="count-pill">{expenses.length} 筆</span></div>
     {expenses.length>0&&<><label className="ledger-search expense-search"><Search size={17}/><input type="search" value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="搜尋支出紀錄"/></label><div className="ledger-filters expense-filters"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>全部</button><button type="button" className={filter==='mine'?'active':''} onClick={()=>setFilter('mine')}>與我有關</button></div></>}
     {expenses.length===0?<EmptyState icon={ReceiptText} title="還沒有任何支出" detail={canAddExpense?"新增第一筆支出，Bopli 會自動計算每個人的分攤。":"目前沒有與你有關的歷史支出。"} action={canAddExpense?"新增第一筆支出":null} onAction={canAddExpense?onAdd:null}/>:visible.length===0?<EmptyState icon={Search} title="找不到符合的支出" detail="請調整搜尋關鍵字或篩選條件。"/>:<div className="card-list expense-swipe-list">{[...visible].reverse().map((e)=><SwipeExpenseRow key={e.id} expense={e} userName={nameFor} actorId={actorId} canDelete={Boolean(canDeleteExpense?.(e))} onOpen={onExpense} onDelete={onDeleteExpense}/>)}</div>}
-    {showTop&&<button className="back-to-top-button" type="button" aria-label="返回支出頁頂部" onClick={()=>document.getElementById('expense-page-top')?.scrollIntoView({behavior:'smooth',block:'start'})}><ArrowUp size={20}/></button>}
+
     {locked&&<div className="info-card"><LockKeyhole size={17}/><p>活動已有待確認／已確認／有爭議的還款紀錄，支出修改與刪除受到保護。</p></div>}
   </>;
 }
 
-function SettlementTab({ activity, group, actorId, nameFor, expenses, settlements, baseBalances, baseProjected, finalFinance, onUpdateActivity, onPay, onConfirm, onIssue, onAll }) {
+function SettlementTab({ activity, group, actorId, nameFor, expenses, settlements, baseBalances, baseProjected, finalFinance, onUpdateActivity, onPay, onConfirm, onIssue, onResubmit, onAll }) {
   const [showPlanEditor,setShowPlanEditor]=useState(false);
   const [whyTransfer,setWhyTransfer]=useState(null);
+  const disputedMine=settlements.filter((s)=>s.status==='disputed'&&(s.fromUid===actorId||s.toUid===actorId));
   const pendingIncoming=settlements.filter((s)=>s.status==='pending'&&s.toUid===actorId);
   const pendingOutgoing=settlements.filter((s)=>s.status==='pending'&&s.fromUid===actorId);
   const completedMine=settlements.filter((s)=>s.status==='confirmed'&&(s.fromUid===actorId||s.toUid===actorId));
@@ -784,7 +768,7 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
   const myProjected=finalFinance.projectedBalances?.[actorId]||0;
   const incomingPendingTotal=pendingIncoming.reduce((sum,row)=>sum+row.amount,0);
   const outgoingPendingTotal=pendingOutgoing.reduce((sum,row)=>sum+row.amount,0);
-  const allClear=expenses.length>0&&pendingIncoming.length===0&&pendingOutgoing.length===0&&pay.length===0&&receive.length===0;
+  const allClear=finalFinance.status==='settled';
 
   const payRows=useMemo(()=>{
     const map=new Map();
@@ -806,6 +790,7 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
   const confirmedReceived=settlements.filter((s)=>s.status==='confirmed'&&s.toUid===actorId).reduce((sum,s)=>sum+s.amount,0);
 
   function savePlan(rows){
+    if(!canManage)return;
     try{buildSettlementPlan(finalFinance.projectedBalances,rows);}catch(error){return;}
     onUpdateActivity({...activity,settlementManualTransfers:rows,settlementPlanUpdatedBy:actorId,settlementPlanUpdatedAt:now(),auditHistory:[...(activity.auditHistory||[]),{id:makeId(),type:'settlementPlanChanged',by:actorId,at:now(),message:'調整建議分帳；未指定的剩餘金額由系統自動分配。',notifyUids:activity.participantIds.filter((id)=>id!==actorId)}]});
     setShowPlanEditor(false);
@@ -821,9 +806,11 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
 
     {pendingIncoming.length>0&&<section><div className="section-heading"><div><h2>待我確認</h2><p>收到錢後再確認，待確認不等於已結清。</p></div></div><div className="card-list">{pendingIncoming.map((s)=><div className="repayment-card priority-card" key={s.id}><div className="repayment-top"><strong>{nameFor(s.fromUid)} → 我</strong><span className="status-tag">待確認</span></div><strong className="repayment-amount">{formatMoney(s.amount)}</strong><div className="repayment-actions"><button className="primary-button" type="button" onClick={()=>onConfirm(s)}><Check size={15}/>確認已收到</button><button className="outline-button" type="button" onClick={()=>onIssue(s)}>金額有問題</button></div></div>)}</div></section>}
 
+    {disputedMine.length>0&&<section><div className="section-heading"><h2>還款需要處理</h2></div>{disputedMine.map((s)=><div className="repayment-card" key={s.id}><strong>{nameFor(s.fromUid)} → {nameFor(s.toUid)} · {formatMoney(s.amount)}</strong><p>這筆付款有問題，金額保留中，不會再次安排付款。</p>{s.issue?.note&&<p>{s.issue.note}</p>}{s.fromUid===actorId?<button className="outline-button" type="button" onClick={()=>onResubmit(s)}>已處理，重新送出確認</button>:<p className="muted small">等待付款人處理後重新送出。</p>}</div>)}</section>}
+
     {payRows.length>0&&<section><div className="section-heading"><div><h2>我要付</h2><p>直接看要付給誰、待確認多少、還剩多少。</p></div></div><div className="card-list">{payRows.map((row)=><div className="transfer-card settlement-route-card" key={row.toUid}><div className="transfer-line"><PersonAvatar name={nameFor(row.toUid)} small/><div className="transfer-description"><strong>付給 {nameFor(row.toUid)}</strong>{row.pending>0&&<small>待對方確認 {formatMoney(row.pending)}</small>}{row.remaining>0&&<small>尚需支付 {formatMoney(row.remaining)}</small>}</div><strong>{formatMoney(row.remaining+row.pending)}</strong></div>{row.remaining>0&&<div className="settlement-route-actions"><button className="text-action-button" type="button" onClick={()=>setWhyTransfer(row.transfer)}>為什麼我要付他？</button><button className="outline-button" type="button" onClick={()=>onPay(row.transfer)}>記錄付款</button></div>}</div>)}</div></section>}
 
-    {receive.length>0&&<section><div className="section-heading"><div><h2>我要收</h2><p>清楚查看還有哪些人尚未付款。</p></div></div><div className="card-list">{receive.map((t)=><div className="transfer-card" key={`${t.fromUid}-${t.toUid}`}><div className="transfer-line"><PersonAvatar name={nameFor(t.fromUid)} small/><div className="transfer-description"><strong>{nameFor(t.fromUid)} → 我</strong><small>尚未付款</small></div><strong>{formatMoney(t.amount)}</strong></div></div>)}</div></section>}
+    {receive.length>0&&<section><div className="section-heading"><div><h2>我要收</h2><p>清楚查看還有哪些人尚未付款。</p></div></div><div className="card-list">{receive.map((t)=><div className="transfer-card" key={`${t.fromUid}-${t.toUid}`}><div className="transfer-line"><PersonAvatar name={nameFor(t.fromUid)} small/><div className="transfer-description"><strong>{nameFor(t.fromUid)} → 我</strong><small>尚待付款</small></div><strong>{formatMoney(t.amount)}</strong></div></div>)}</div></section>}
   </>}
 
     {canManage&&!allClear&&<button className="outline-button full settlement-adjust-button" type="button" onClick={()=>setShowPlanEditor(true)}>調整分帳</button>}

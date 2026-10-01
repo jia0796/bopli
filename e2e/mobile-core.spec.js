@@ -35,7 +35,7 @@ test.describe('Bopli 2.4 mobile core journey', () => {
     await page.getByRole('button', { name: '儲存支出' }).click();
 
     await expect(page.getByText('晚餐')).toBeVisible();
-    await expect(page.getByText('已結清')).toBeVisible();
+    await expect(page.getByText('目前已結清')).toBeVisible();
     await page.getByRole('button', { name: '去結算' }).click();
     await expect(page.getByText('目前已結清')).toBeVisible();
   });
