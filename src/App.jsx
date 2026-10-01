@@ -22,7 +22,8 @@ import {
   isDeputy, isOwner, setDeputy, updateExpenseWithHistory,
 } from './lib/domain.js';
 import { applyRoundingToBalances, buildRoundingModel } from './lib/rounding.js';
-import { createGuestStore, freshStore, loadStore, makeId, now, saveStore, STORAGE_KEY } from './lib/store.js';
+import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
+import { useStorePersistence } from './lib/useStorePersistence.js';
 
 const formattedTime = (date) => date ? new Date(date).toLocaleString('zh-TW', {year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 const initials = (name) => (name || '?').slice(0, 1);
@@ -242,14 +243,7 @@ export default function App() {
   const [navigationOrigin,setNavigationOrigin]=useState(null);
   const [storageError,setStorageError]=useState('');
 
-  useEffect(()=>{
-    try {
-      saveStore(data);
-      setStorageError('');
-    } catch (error) {
-      setStorageError(error?.message || '本機資料儲存失敗，本次變更可能尚未安全寫入。');
-    }
-  },[data]);
+  useStorePersistence(data,{delay:300,onError:setStorageError});
   useEffect(()=>{ window.scrollTo({top:0,behavior:'instant'}); },[screen,groupId,activityId,tab]);
   useEffect(()=>{ if(!toast)return;const t=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(t); },[toast]);
   useEffect(()=>{ if(!successFlash)return;const t=setTimeout(()=>setSuccessFlash(''),1500);return()=>clearTimeout(t); },[successFlash]);
