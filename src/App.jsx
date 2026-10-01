@@ -108,6 +108,18 @@ function TestIdentityModal({ users, groups, actorId, primaryUserId, testIdentity
   </section></div>;
 }
 
+function AddActivityMemberModal({ targetUid, nameFor, currentCount, hasRepayments, onClose, onConfirm }) {
+  const [mode,setMode]=useState('future');
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>將 {nameFor(targetUid)} 加入活動</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div>
+    <p className="muted small">選擇要從什麼時候開始一起分帳。</p>
+    <div className="simple-choice-list">
+      <button type="button" className={mode==='future'?'selected':''} onClick={()=>setMode('future')}><span className="radio-dot"/><span><strong>從現在開始</strong><small>不改動之前的支出。適合中途加入。</small></span></button>
+      <button type="button" disabled={hasRepayments} className={mode==='past'?'selected':''} onClick={()=>setMode('past')}><span className="radio-dot"/><span><strong>也加入之前的共同支出</strong><small>{hasRepayments?'活動已有還款，不能重新計算過去支出。':`可安全重算的共同平均支出會改成 ${currentCount+1} 人分攤。`}</small></span></button>
+    </div>
+    <button className="primary-button full" type="button" onClick={()=>onConfirm(mode==='past')}>確認加入</button>
+  </section></div>;
+}
+
 function RemoveActivityMemberModal({ activity, expenses, targetUid, nameFor, hasRepayments, onClose, onConfirm }) {
   const related=expenses.filter((expense)=>(expense.allocations?.[targetUid]||0)>0);
   const [mode,setMode]=useState('future');
@@ -565,7 +577,7 @@ export default function App() {
     {modal?.kind==='confirmDeleteActivity'&&(()=>{const target=data.activities.find((a)=>a.id===modal.activityId);return target?<ConfirmModal danger title={`永久刪除「${target.title}」？`} confirmText="永久刪除活動" cancelText="取消" onClose={()=>setModal(null)} onConfirm={()=>confirmDeleteActivity(target.id)}><p>這個動作無法復原，會永久刪除此活動及其支出、還款與草稿資料。</p><p className="muted small">目前包含 {modal.counts?.expenses||0} 筆支出、{modal.counts?.settlements||0} 筆還款紀錄、{modal.counts?.drafts||0} 份草稿。</p></ConfirmModal>:null;})()}
     {modal?.kind==='confirmDeleteGroup'&&(()=>{const target=data.groups.find((g)=>g.id===modal.groupId);const activityCount=data.activities.filter((a)=>a.groupId===modal.groupId).length;return target?<ConfirmModal danger title={`永久刪除「${target.name}」？`} confirmText="永久刪除群組" cancelText="取消" onClose={()=>setModal(null)} onConfirm={()=>confirmDeleteGroup(target.id)}><p>這個動作無法復原，會永久刪除群組內所有活動、支出、還款與草稿資料。</p><p className="muted small">目前群組共有 {activityCount} 個活動。成員帳號本身不會被刪除。</p></ConfirmModal>:null;})()}
     {modal?.kind==='batchAddActivityMembers'&&activity&&<BatchAddMembersModal memberIds={modal.memberIds||[]} nameFor={nameFor} hasExpenses={activityExpenses.length>0} hasRepayments={activitySettlements.length>0} onClose={()=>setModal(null)} onSubmit={(decisions)=>addActivityMembersBatch(modal.memberIds||[],decisions)}/>} 
-    {modal?.kind==='addActivityMemberChoice'&&<ConfirmModal title={`將 ${nameFor(modal.targetUid)} 加入活動`} confirmText={`將共同支出改為 ${activity.participantIds.length+1} 人分攤`} cancelText="稍後更改，維持原狀" onClose={()=>addActivityMember(modal.targetUid,false)} onConfirm={()=>addActivityMember(modal.targetUid,true)}><p>這個活動目前已有 {activityExpenses.length} 筆支出。只有「全活動成員共同平均」的既有支出會安全重新計算；特殊分攤不會被擅自改動。</p>{activitySettlements.length>0&&<p className="field-hint"><LockKeyhole size={15}/>活動已開始結算，現在只能維持原狀，稍後再重新檢查。</p>}</ConfirmModal>}
+    {modal?.kind==='addActivityMemberChoice'&&activity&&<AddActivityMemberModal targetUid={modal.targetUid} nameFor={nameFor} currentCount={activity.participantIds.length} hasRepayments={activitySettlements.length>0} onClose={()=>setModal(null)} onConfirm={(recalculate)=>addActivityMember(modal.targetUid,recalculate)}/>} 
     {modal?.kind==='reviewMember'&&<ConfirmModal title={`重新檢查 ${nameFor(modal.targetUid)}`} confirmText="套用至既有共同支出" cancelText="維持原狀，不再提醒" onClose={()=>{resolveMemberReview(modal.targetUid,false);setModal(null);}} onConfirm={()=>{resolveMemberReview(modal.targetUid,true);setModal(null);}}><p>如果這位成員原本就應該參與前面的共同支出，可以重新計算；如果是中途加入，維持原狀即可。</p></ConfirmModal>}
     {modal?.kind==='removeActivityMember'&&activity&&<RemoveActivityMemberModal activity={activity} expenses={activityExpenses} targetUid={modal.targetUid} nameFor={nameFor} hasRepayments={activitySettlements.length>0} onClose={()=>setModal(null)} onConfirm={(selected)=>confirmRemoveActivityMember(modal.targetUid,selected)}/>}
     {modal?.kind==='switchIdentity'&&<TestIdentityModal users={data.users} groups={data.groups} actorId={actorId} primaryUserId={primaryUserId} testIdentityIds={data.account?.testIdentityIds||[]} onClose={()=>setModal(null)} onAddIdentity={addTestIdentity} onRemoveIdentity={removeTestIdentity} onSwitch={(uid)=>{if(uid!==primaryUserId&&!(data.account?.testIdentityIds||[]).includes(uid))return;setData((prev)=>({...prev,currentUserId:uid}));setModal(null);setGroupId(null);setActivityId(null);setScreen('home');setTab('expenses');notify(`已切換測試身分：${data.users[uid]?.nickname||'成員'}`);}}/>}
