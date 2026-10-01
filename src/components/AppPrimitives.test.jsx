@@ -1,8 +1,10 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmModal, EmptyState, PersonAvatar, SwipeMemberRow } from './AppPrimitives.jsx';
 import { ReceiptText } from 'lucide-react';
+
+afterEach(()=>cleanup());
 
 describe('shared UI primitives', () => {
   it('confirm modal only performs destructive action after explicit confirmation', () => {
@@ -12,6 +14,12 @@ describe('shared UI primitives', () => {
     expect(onConfirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button',{name:'確認刪除'}));
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('can render a single-action information modal', () => {
+    render(<ConfirmModal title="說明" hideCancel confirmText="知道了" onConfirm={vi.fn()} onClose={vi.fn()}><p>內容</p></ConfirmModal>);
+    expect(screen.getByRole('button',{name:'知道了'})).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'再想想'})).not.toBeInTheDocument();
   });
 
   it('renders a dedicated empty state instead of implying settlement', () => {

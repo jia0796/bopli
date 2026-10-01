@@ -56,7 +56,7 @@ async function addSwitchableIdentityAndSwitch(page, name) {
   await expect(page.locator('.test-version-strip')).toContainText(`測試身分：${name}`);
 }
 
-test.describe('Bopli 2.3 mobile extended journeys', () => {
+test.describe('Bopli 2.4 mobile extended journeys', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
   });
@@ -69,7 +69,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await addSimpleExpense(page, '午餐', 200);
 
     await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /一起分帳的人/ }).click();
+    await page.getByRole('button', { name: /活動成員/ }).click();
     const row=page.locator('.member-row').filter({hasText:'小安'}).first();
     await row.getByRole('button', { name: '移出活動' }).click();
 
@@ -77,10 +77,9 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await page.getByRole('button', { name: '確認移出活動' }).click();
     await expect(page.getByText('1 人參與')).toBeVisible();
 
-    await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /活動/ }).first().click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
     await expect(page.getByText('午餐')).toBeVisible();
-    await page.getByRole('button', { name: '成員', exact: true }).click();
+    await page.getByRole('button', { name: '帳目', exact: true }).click();
     await expect(page.getByText('小安')).toBeVisible();
   });
 
@@ -93,13 +92,12 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
 
     await page.getByRole('button', { name: '活動成員' }).click();
     await expect(page.getByRole('heading', { name: '活動成員' })).toBeVisible();
-    await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /活動/ }).first().click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
 
     await goHomeFromActivity(page);
     await addSwitchableIdentityAndSwitch(page, '小安');
     await page.locator('.action-card').filter({hasText:'捷徑活動'}).click();
-    await expect(page.getByText('你要付')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '我要付', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '結算', exact: true })).toHaveClass(/selected/);
   });
 
@@ -115,7 +113,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
 
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
     await page.getByRole('button', { name: '結算', exact: true }).click();
-    await expect(page.getByText('你要付')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '我要付', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '記錄付款' }).click();
     await page.getByRole('button', { name: '記錄付款' }).last().click();
     await expect(page.getByText(/已記錄付款/)).toBeVisible();
@@ -124,7 +122,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await page.getByRole('button', { name: '回到預設身分' }).click();
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
     await page.getByRole('button', { name: '結算', exact: true }).click();
-    await expect(page.getByText('等你確認')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '待我確認', exact: true })).toBeVisible();
     await page.getByRole('button', { name: /確認已收到/ }).click();
     await expect(page.getByText('目前已結清')).toBeVisible();
   });
@@ -171,7 +169,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await addTestMembers(page, original);
     await createActivity(page, '巴黎行程');
     await page.getByRole('button', { name: '活動設定' }).click();
-    await expect(page.getByRole('button', { name: /一起分帳的人/ })).toContainText('14 人');
+    await expect(page.getByRole('button', { name: /活動成員/ })).toContainText('14 人');
     await page.getByRole('button', { name: /活動/ }).first().click();
     await addSimpleExpense(page, '巴黎晚餐', 1400);
 
@@ -186,7 +184,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await page.getByRole('button', { name: /群組/ }).first().click();
     await page.getByRole('button', { name: /巴黎行程/ }).click();
     await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /一起分帳的人/ }).click();
+    await page.getByRole('button', { name: /活動成員/ }).click();
     const u15=page.locator('.member-row').filter({hasText:'U15'}).first();
     await u15.getByRole('button', { name: /加入/ }).click();
     await page.getByRole('button', { name: '確認加入' }).click();
@@ -201,8 +199,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await expect(page.getByText('13 人參與')).toBeVisible();
 
     // Build a completely separate second group and activity.
-    await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /活動/ }).first().click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
     await page.getByRole('button', { name: '返回群組' }).click();
     await page.getByRole('button', { name: '返回首頁' }).click();
     await createGroup(page, '第二群組');
@@ -217,7 +214,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await expect(page.getByRole('button', { name: /查看 巴黎晚餐/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /查看 第二群晚餐/ })).toHaveCount(0);
     await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /一起分帳的人/ }).click();
+    await page.getByRole('button', { name: /活動成員/ }).click();
     await expect(page.getByText('13 人參與')).toBeVisible();
   });
 });

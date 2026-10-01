@@ -25,7 +25,7 @@ export function expensePaymentSummary(expense) {
 }
 
 /** A confirmed repayment transfers net credit, but is never a new expense. */
-export function memberLedger(participantIds, expenses, settlements = []) {
+export function memberLedger(participantIds, expenses, settlements = [], { balances, shares, poolAllocations = {} } = {}) {
   const ids = [...participantIds];
   const ledgers = Object.fromEntries(ids.map((uid) => [uid, {
     uid, paid: 0, changeReceived: 0, advanced: 0, share: 0,
@@ -87,12 +87,14 @@ export function memberLedger(participantIds, expenses, settlements = []) {
       to.pendingIn += settlement.amount;
     }
   }
-  const expected = calculateBalances(ids, expenses, settlements);
-  for (const uid of ids) {
+  const expected = balances || calculateBalances(ids, expenses, settlements);
+  for (const uid of Object.keys(ledgers)) {
     const member = ledgers[uid];
+    if (shares && Object.hasOwn(shares, uid)) member.share = shares[uid];
     member.advanced = member.paid - member.changeReceived;
-    member.balance = member.advanced - member.share + member.repaid - member.received;
-    if (member.balance !== expected[uid]) throw new Error('個人帳目與活動結算不一致。');
+    member.roundingCredit = poolAllocations[uid] || 0;
+    member.balance = member.advanced - member.share + member.repaid - member.received + member.roundingCredit;
+    if ((!balances || ids.includes(uid)) && member.balance !== expected[uid]) throw new Error('個人帳目與活動結算不一致。');
   }
   return ledgers;
 }

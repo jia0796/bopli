@@ -3,8 +3,9 @@ import { EDIT_POLICY } from './domain.js';
 
 import { STORE_SCHEMA_VERSION } from '../version.js';
 
-export const STORAGE_KEY = 'bopli-test-2.3-v1';
-export const LEGACY_STORAGE_KEYS = ['bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
+export const STORAGE_KEY = 'bopli-test-2.4-v1';
+export const LEGACY_STORAGE_KEYS = ['bopli-test-2.3-v1', 'bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
+export const RESET_MARKER_KEY = 'bopli-test-2.4-reset-once-20261001';
 export const now = () => new Date().toISOString();
 export const makeId = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -80,21 +81,19 @@ function readStoreKey(key) {
 }
 
 export function loadStore() {
+  // User-requested one-time reset for bopli_test.2.4. The marker prevents
+  // refreshes from wiping newly created 2.4 data again.
+  const resetDone = localStorage.getItem(RESET_MARKER_KEY) === '1';
+  if (!resetDone) {
+    for (const key of [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]) {
+      try { localStorage.removeItem(key); } catch { /* best effort */ }
+    }
+    try { localStorage.setItem(RESET_MARKER_KEY, '1'); } catch { /* persistence layer reports future writes */ }
+    return freshStore();
+  }
+
   const current = readStoreKey(STORAGE_KEY);
   if (current) return current;
-
-  // 2.3 never deletes prior-version data. A corrupt/missing 2.3 store falls back
-  // key-by-key to the newest usable legacy store, leaving every legacy key untouched.
-  for (const key of LEGACY_STORAGE_KEYS) {
-    const migrated = readStoreKey(key);
-    if (!migrated) continue;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-    } catch {
-      // The migrated data is still usable in-memory even when persistence is full/unavailable.
-    }
-    return migrated;
-  }
   return freshStore();
 }
 

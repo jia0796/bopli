@@ -10,11 +10,11 @@ function MoneyRow({ label, value, emphasized = false }) {
   return <div className={`ledger-money-row ${emphasized ? 'strong' : ''}`}><span>{label}</span><strong>{formatMoney(value)}</strong></div>;
 }
 
-export default function MemberLedger({ participantIds, users, actorId, expenses, settlements, onOpenExpense }) {
+export default function MemberLedger({ participantIds, users, actorId, expenses, settlements, finances, onOpenExpense }) {
   const [query, setQuery] = useState('');
   const [expandedUid, setExpandedUid] = useState(null);
   const [showSettled, setShowSettled] = useState(false);
-  const ledgers = useMemo(() => memberLedger(participantIds, expenses, settlements), [participantIds, expenses, settlements]);
+  const ledgers = useMemo(() => memberLedger(participantIds, expenses, settlements, finances || {}), [participantIds, expenses, settlements, finances]);
 
   const ordered = useMemo(() => {
     const stableIndex = Object.fromEntries(participantIds.map((id, i) => [id, i]));
@@ -29,11 +29,12 @@ export default function MemberLedger({ participantIds, users, actorId, expenses,
 
   const filtered = ordered.filter((row) => users[row.uid]?.nickname?.toLocaleLowerCase('zh-TW').includes(query.trim().toLocaleLowerCase('zh-TW')));
   const unsettled = filtered.filter((row) => row.balance !== 0 || row.pendingIn || row.pendingOut);
+  const started = expenses.length > 0;
   const settled = filtered.filter((row) => row.balance === 0 && !row.pendingIn && !row.pendingOut);
 
   function renderCard(row) {
     const uid=row.uid; const expanded=expandedUid===uid;
-    const status=row.balance>0?'應收':row.balance<0?'應付':(row.pendingIn||row.pendingOut)?'待確認':'已結清';
+    const status=row.balance>0?'應收':row.balance<0?'應付':(row.pendingIn||row.pendingOut)?'待確認':started?'已結清':'尚未開始記帳';
     return <article className={`ledger-person-card ${expanded?'expanded':''}`} key={uid}>
       <button className="ledger-person-trigger compact-ledger-trigger" type="button" aria-expanded={expanded} onClick={()=>setExpandedUid(expanded?null:uid)}>
         <span className="ledger-avatar" aria-hidden="true">{users[uid]?.nickname?.slice(0,1)||'?'}</span>
@@ -44,6 +45,7 @@ export default function MemberLedger({ participantIds, users, actorId, expenses,
       {expanded&&<div className="ledger-expanded">
         <MoneyRow label="實際墊付" value={row.advanced} emphasized/>
         <MoneyRow label="應分攤" value={row.share}/>
+        {row.roundingCredit>0&&<MoneyRow label="尾差增加應收" value={row.roundingCredit}/>}
         <MoneyRow label="已確認付給別人" value={row.repaid}/>
         <MoneyRow label="已確認收到還款" value={row.received}/>
         {(row.pendingOut||row.pendingIn)?<div className="ledger-pending">待確認：付出 {money(row.pendingOut)} ／ 收取 {money(row.pendingIn)}。待確認金額不視為已結清。</div>:null}
@@ -58,7 +60,7 @@ export default function MemberLedger({ participantIds, users, actorId, expenses,
     <div className="section-heading"><div><h2>成員帳目</h2><p>{participantIds.length} 位成員 · {unsettled.length} 位仍有待處理帳目</p></div></div>
     <label className="ledger-search"><Search size={17}/><input type="search" placeholder="搜尋成員" aria-label="搜尋成員" value={query} onChange={(e)=>setQuery(e.target.value)}/></label>
     {filtered.length===0?<div className="empty-state compact-empty"><UsersRound size={22}/><h3>找不到成員</h3><p>請調整搜尋關鍵字。</p></div>:<div className="card-list ledger-person-list">{unsettled.map(renderCard)}
-      {settled.length>0&&<><button className="settled-collapse" type="button" onClick={()=>setShowSettled((v)=>!v)}><span>已結清 {settled.length} 人</span><span>{showSettled?'收合':'展開'} <ChevronDown size={15} className={showSettled?'chevron-open':''}/></span></button>{showSettled&&settled.map(renderCard)}</>}
+      {settled.length>0&&<><button className="settled-collapse" type="button" onClick={()=>setShowSettled((v)=>!v)}><span>{started?'已結清':'尚未開始記帳'} {settled.length} 人</span><span>{showSettled?'收合':'展開'} <ChevronDown size={15} className={showSettled?'chevron-open':''}/></span></button>{showSettled&&settled.map(renderCard)}</>}
     </div>}
   </section>;
 }

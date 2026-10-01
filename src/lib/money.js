@@ -167,11 +167,19 @@ export function calculateBalances(participantIds, expenses, settlements = [], in
       balances[uid] -= share;
     }
   }
+  return applyRepayments(balances, settlements, includePending);
+}
+
+/** Reserve pending and disputed amounts without treating them as confirmed payments. */
+export function applyRepayments(baseBalances, settlements = [], includePending = false) {
+  const balances = { ...baseBalances };
   assertUniqueSettlementIds(settlements);
-  for (const settlement of settlements) {
+  // Confirmed first makes validation independent of which pending record was confirmed first.
+  const ordered = [...settlements].sort((a, b) => Number(b.status === 'confirmed') - Number(a.status === 'confirmed'));
+  for (const settlement of ordered) {
     if (!['pending', 'confirmed', 'disputed'].includes(settlement.status)) continue;
     assertSettlement(settlement);
-    if (settlement.status !== 'confirmed' && !(includePending && settlement.status === 'pending')) continue;
+    if (settlement.status !== 'confirmed' && !includePending) continue;
     if (!(settlement.fromUid in balances) || !(settlement.toUid in balances)) {
       throw new Error('還款涉及非活動成員。');
     }
@@ -210,6 +218,70 @@ export function suggestTransfers(balances) {
   }
   if (i !== debtors.length || j !== creditors.length) throw new Error('帳目不平衡，無法建議轉帳。');
   return transfers;
+}
+
+/**
+ * Apply manager-defined transfer routes first, then deterministically auto-fill the remainder.
+ * Manual routes must still go directly from a net debtor to a net creditor.
+ * clamp=true is used when balances changed after a payment; stale manual rows are reduced/skipped
+ * instead of breaking the settlement screen.
+ */
+export function buildSettlementPlan(balances, manualTransfers = [], { clamp = false } = {}) {
+  const residual = Object.fromEntries(Object.entries(balances || {}).map(([id, value]) => [id, value]));
+  const manual = [];
+  const seen = new Set();
+
+  for (const row of manualTransfers || []) {
+    if (!row) continue;
+    const fromUid = row.fromUid;
+    const toUid = row.toUid;
+    if (typeof fromUid !== 'string' || !fromUid || typeof toUid !== 'string' || !toUid || fromUid === toUid) {
+      if (clamp) continue;
+      throw new Error('手動分帳的付款人或收款人不合法。');
+    }
+    const key = `${fromUid}→${toUid}`;
+    if (seen.has(key)) {
+      if (clamp) continue;
+      throw new Error('同一組付款人與收款人只能設定一次。');
+    }
+    seen.add(key);
+
+    if (!Number.isSafeInteger(row.amount) || row.amount <= 0) {
+      if (clamp) continue;
+      throw new Error('手動分帳金額必須是正整數。');
+    }
+
+    const debtorOutstanding = Math.max(0, -(residual[fromUid] || 0));
+    const creditorOutstanding = Math.max(0, residual[toUid] || 0);
+    const maximum = Math.min(debtorOutstanding, creditorOutstanding);
+    if (maximum <= 0) {
+      if (clamp) continue;
+      throw new Error('手動分帳只能由目前應付的人直接付給目前應收的人。');
+    }
+    if (!clamp && row.amount > maximum) {
+      throw new Error(`這筆最多只能分配 NT$ ${maximum.toLocaleString('zh-TW')}。`);
+    }
+    const amount = clamp ? Math.min(row.amount, maximum) : row.amount;
+    if (amount <= 0) continue;
+
+    residual[fromUid] = (residual[fromUid] || 0) + amount;
+    residual[toUid] = (residual[toUid] || 0) - amount;
+    manual.push({
+      fromUid,
+      toUid,
+      amount,
+      source: 'manual',
+      manualId: row.id || key,
+    });
+  }
+
+  const automaticTransfers = suggestTransfers(residual).map((row) => ({ ...row, source: 'auto' }));
+  return {
+    transfers: [...manual, ...automaticTransfers],
+    manualTransfers: manual,
+    automaticTransfers,
+    residualAfterManual: residual,
+  };
 }
 
 export function formatMoney(value) {

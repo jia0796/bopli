@@ -1,4 +1,4 @@
-import { calculateBalances } from './money.js';
+import { activityFinance } from './activityFinance.js';
 import { isOwner } from './domain.js';
 
 const activeSettlement = (item) => ['pending','disputed'].includes(item?.status);
@@ -14,7 +14,7 @@ export function activityDeletionStatus(group, activity, data, actorId) {
   }
 
   try {
-    const balances=calculateBalances(activity.participantIds||[],expenses,settlements);
+    const { balances }=activityFinance(activity,expenses,settlements);
     if (Object.values(balances).some((value)=>value!==0)) {
       return { allowed:false, reason:'活動仍有未結清餘額，完成結算後才能永久刪除。' };
     }

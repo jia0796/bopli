@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { splitEqual, splitCustom, splitByRatio, calculateAllocation, calculateBalances, suggestTransfers } from './money.js';
+import { splitEqual, splitCustom, splitByRatio, calculateAllocation, calculateBalances, suggestTransfers, buildSettlementPlan } from './money.js';
 
 test('平均分攤餘數固定分配，總和不變', () => {
   assert.deepEqual(splitEqual(100, ['a','b','c']), { a: 34, b: 33, c: 33 });
@@ -60,4 +60,44 @@ test('合法部分還款可連續確認直到結清', () => {
     {id:'s2',fromUid:'b',toUid:'a',amount:30,status:'confirmed'},
   ];
   assert.deepEqual(calculateBalances(['a','b'],[expense],settlements),{a:0,b:0});
+});
+
+
+test('手動指定部分後系統只自動分配剩餘金額', () => {
+  const plan=buildSettlementPlan(
+    {a:-1000,b:700,d:300},
+    [{id:'m1',fromUid:'a',toUid:'b',amount:400}],
+  );
+  assert.deepEqual(plan.transfers,[
+    {fromUid:'a',toUid:'b',amount:400,source:'manual',manualId:'m1'},
+    {fromUid:'a',toUid:'b',amount:300,source:'auto'},
+    {fromUid:'a',toUid:'d',amount:300,source:'auto'},
+  ]);
+});
+
+test('手動分帳不可超過付款人應付或收款人應收', () => {
+  assert.throws(()=>buildSettlementPlan(
+    {a:-500,b:300,c:200},
+    [{fromUid:'a',toUid:'b',amount:301}],
+  ),/最多只能分配/);
+});
+
+test('手動分帳禁止中繼與重複路線', () => {
+  assert.throws(()=>buildSettlementPlan(
+    {a:-500,b:300,c:200},
+    [{fromUid:'b',toUid:'c',amount:100}],
+  ),/應付.*應收|只能由/);
+  assert.throws(()=>buildSettlementPlan(
+    {a:-500,b:500},
+    [{fromUid:'a',toUid:'b',amount:100},{fromUid:'a',toUid:'b',amount:100}],
+  ),/只能設定一次/);
+});
+
+test('餘額因部分付款改變時可安全縮減舊手動方案', () => {
+  const plan=buildSettlementPlan(
+    {a:-200,b:200},
+    [{id:'m1',fromUid:'a',toUid:'b',amount:400}],
+    {clamp:true},
+  );
+  assert.deepEqual(plan.transfers,[{fromUid:'a',toUid:'b',amount:200,source:'manual',manualId:'m1'}]);
 });
