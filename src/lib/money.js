@@ -98,6 +98,28 @@ export function calculateAllocation({ amount, participantIds, splitMode, customA
   throw new Error('不支援的分攤方式。');
 }
 
+export function assertSettlement(settlement) {
+  if (!settlement || typeof settlement !== 'object') throw new Error('還款資料不合法。');
+  if (typeof settlement.fromUid !== 'string' || !settlement.fromUid ||
+      typeof settlement.toUid !== 'string' || !settlement.toUid) {
+    throw new Error('還款成員不合法。');
+  }
+  if (settlement.fromUid === settlement.toUid) throw new Error('不能自己還款給自己。');
+  if (!Number.isSafeInteger(settlement.amount) || settlement.amount <= 0 || settlement.amount > 1_000_000_000) {
+    throw new Error('還款金額必須是 1～1,000,000,000 的整數。');
+  }
+  return settlement;
+}
+
+function assertUniqueSettlementIds(settlements) {
+  const seen = new Set();
+  for (const settlement of settlements) {
+    if (!settlement?.id) continue;
+    if (seen.has(settlement.id)) throw new Error('偵測到重複的還款紀錄。');
+    seen.add(settlement.id);
+  }
+}
+
 /** Confirmed transfers reduce debt. Pending transfers are only reserved for new suggestions. */
 export function calculateBalances(participantIds, expenses, settlements = [], includePending = false) {
   // Current activity members and historical ledger participants are different concepts.
@@ -145,10 +167,19 @@ export function calculateBalances(participantIds, expenses, settlements = [], in
       balances[uid] -= share;
     }
   }
+  assertUniqueSettlementIds(settlements);
   for (const settlement of settlements) {
+    if (!['pending', 'confirmed', 'disputed'].includes(settlement.status)) continue;
+    assertSettlement(settlement);
     if (settlement.status !== 'confirmed' && !(includePending && settlement.status === 'pending')) continue;
     if (!(settlement.fromUid in balances) || !(settlement.toUid in balances)) {
       throw new Error('還款涉及非活動成員。');
+    }
+    const debtorOutstanding = Math.max(0, -(balances[settlement.fromUid] || 0));
+    const creditorOutstanding = Math.max(0, balances[settlement.toUid] || 0);
+    const maximumPayable = Math.min(debtorOutstanding, creditorOutstanding);
+    if (settlement.amount > maximumPayable) {
+      throw new Error(`還款金額超過目前可結算金額 NT$ ${maximumPayable.toLocaleString('zh-TW')}。`);
     }
     balances[settlement.fromUid] += settlement.amount;
     balances[settlement.toUid] -= settlement.amount;

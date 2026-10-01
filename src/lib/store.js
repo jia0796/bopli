@@ -1,14 +1,16 @@
 import { splitEqual } from './money.js';
 import { EDIT_POLICY } from './domain.js';
 
-export const STORAGE_KEY = 'bopli-test-2.2-v1';
-const ONE_TIME_RESET_KEY = 'bopli-test-2.2-reset-once-20260930';
+import { STORE_SCHEMA_VERSION } from '../version.js';
+
+export const STORAGE_KEY = 'bopli-test-2.3-v1';
+export const LEGACY_STORAGE_KEYS = ['bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
 export const now = () => new Date().toISOString();
 export const makeId = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function freshStore() {
   return {
-    version: 22,
+    version: STORE_SCHEMA_VERSION,
     currentUserId: null,
     account: { googleLinked: false, googleEmail: '', backupPromptSeen: false, primaryUserId: '', testIdentityIds: [] },
     users: {},
@@ -43,37 +45,76 @@ function normalizeActivity(activity) {
   };
 }
 
-export function loadStore() {
+function isUsableStore(item) {
+  return Boolean(item?.users && Array.isArray(item.groups) && Array.isArray(item.activities) &&
+    Array.isArray(item.expenses) && Array.isArray(item.settlements));
+}
+
+export function migrateStore(item) {
+  if (!isUsableStore(item)) return null;
+  if (Number.isInteger(item.version) && item.version > STORE_SCHEMA_VERSION) return item;
+  return {
+    ...freshStore(),
+    ...item,
+    version: STORE_SCHEMA_VERSION,
+    account: {
+      ...freshStore().account,
+      ...(item.account || {}),
+      testIdentityIds: Array.isArray(item.account?.testIdentityIds) ? item.account.testIdentityIds : [],
+    },
+    groups: item.groups.map(normalizeGroup),
+    activities: item.activities.map(normalizeActivity),
+    drafts: Array.isArray(item.drafts) ? item.drafts : [],
+    notifications: Array.isArray(item.notifications) ? item.notifications : [],
+  };
+}
+
+function readStoreKey(key) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
   try {
-    // One-time reset requested specifically for bopli_test.2.2.
-    // The marker prevents refreshes and later updates from repeatedly deleting data.
-    if (localStorage.getItem(ONE_TIME_RESET_KEY) !== 'done') {
-      ['bopli-2.1-v1', 'bopli-2.1.1-v1', 'bopli-test-2.2-v1'].forEach((key) => localStorage.removeItem(key));
-      localStorage.setItem(ONE_TIME_RESET_KEY, 'done');
+    return migrateStore(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+export function loadStore() {
+  const current = readStoreKey(STORAGE_KEY);
+  if (current) return current;
+
+  // 2.3 never deletes prior-version data. A corrupt/missing 2.3 store falls back
+  // key-by-key to the newest usable legacy store, leaving every legacy key untouched.
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const migrated = readStoreKey(key);
+    if (!migrated) continue;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    } catch {
+      // The migrated data is still usable in-memory even when persistence is full/unavailable.
     }
-    const item = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (item?.version === 22 && item.users && Array.isArray(item.groups) &&
-      Array.isArray(item.activities) && Array.isArray(item.expenses) && Array.isArray(item.settlements)) {
-      return {
-        ...freshStore(),
-        ...item,
-        account: {
-          ...freshStore().account,
-          ...(item.account || {}),
-          testIdentityIds: Array.isArray(item.account?.testIdentityIds) ? item.account.testIdentityIds : [],
-        },
-        groups: item.groups.map(normalizeGroup),
-        activities: item.activities.map(normalizeActivity),
-        drafts: Array.isArray(item.drafts) ? item.drafts : [],
-        notifications: Array.isArray(item.notifications) ? item.notifications : [],
-      };
-    }
-  } catch { /* Corrupted local prototype data should not crash the UI. */ }
+    return migrated;
+  }
   return freshStore();
 }
 
 export function saveStore(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (Number.isInteger(data?.version) && data.version > STORE_SCHEMA_VERSION) {
+    throw new Error(`資料版本 ${data.version} 比目前支援的 ${STORE_SCHEMA_VERSION} 更新，已停止覆寫以保護資料。`);
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return { ok: true };
+  } catch (error) {
+    const quota = error?.name === 'QuotaExceededError' || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+    const message = quota
+      ? '本機儲存空間已滿，本次變更尚未安全寫入。'
+      : '本機資料儲存失敗，本次變更可能尚未安全寫入。';
+    const wrapped = new Error(message);
+    wrapped.cause = error;
+    wrapped.code = quota ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED';
+    throw wrapped;
+  }
 }
 
 export function createGuestStore(accountName, withDemo = false) {
