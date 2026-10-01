@@ -511,3 +511,49 @@ button,input,select,textarea { font: inherit; }
 .expense-detail-actions .primary-button,.expense-detail-actions .danger-button{min-height:44px}
 .removal-meaning{display:grid;gap:4px;background:#fff5ee;border-radius:12px;padding:11px;margin:12px 0}
 .removal-meaning strong{font-size:11px}.removal-meaning small{font-size:9px;color:var(--muted);line-height:1.5}
+
+
+/* bopli_test.2.3 clarity pass */
+.action-go{
+  flex:none;border-radius:999px;background:#fff0e8;color:#a95d4b;
+  padding:6px 9px;font-size:9px;font-weight:850;
+}
+.activity-glance-card{
+  display:grid;gap:14px;background:linear-gradient(140deg,#fff1ea,#fffaf7);
+  border:1px solid #f2ddd4;border-radius:20px;padding:18px;margin-bottom:14px;
+}
+.activity-glance-card>div:first-child{display:grid;gap:5px}
+.activity-glance-card>div:first-child>small{font-size:10px;color:#9b7467;font-weight:800}
+.activity-glance-card>div:first-child>strong{font-size:23px;letter-spacing:-.04em}
+.activity-glance-card>div:first-child>span{font-size:10px;color:var(--muted);line-height:1.55}
+.activity-primary-actions{display:grid;grid-template-columns:1.2fr 1fr;gap:8px}
+.activity-primary-actions .primary-button,.activity-primary-actions .outline-button{
+  min-height:44px;margin:0;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.activity-total-note{border-top:1px solid #efdcd3;padding-top:10px;color:#9c8278;font-size:9px}
+.simple-choice-list{display:grid;gap:8px;margin:12px 0}
+.simple-choice-list>button{
+  width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;
+  border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px;color:var(--ink);
+}
+.simple-choice-list>button.selected{border-color:#efb09d;background:#fff5f0}
+.simple-choice-list>button:disabled{opacity:.55}
+.simple-choice-list>button>span:last-child{display:grid;gap:3px}
+.simple-choice-list strong{font-size:11px}
+.simple-choice-list small{font-size:9px;color:var(--muted);line-height:1.5}
+.expense-more-options{
+  border:1px solid var(--line);background:#fffaf7;border-radius:14px;padding:0 12px;
+}
+.expense-more-options>summary{padding:12px 0;font-size:11px;color:#966455}
+.advanced-expense-options{display:grid;gap:11px;padding:0 0 12px}
+.simple-payment-block{gap:10px}
+.settlement-advanced{
+  margin:18px 0;border:1px solid var(--line);background:#fffaf7;border-radius:14px;padding:0 12px;
+}
+.settlement-advanced>summary{padding:12px 0}
+.settlement-advanced .rounding-panel{margin-top:4px}
+.settings-link-row>strong{font-size:10px;color:#726965;margin-left:auto;white-space:nowrap}
+@media (max-width:420px){
+  .activity-primary-actions{grid-template-columns:1fr 1fr}
+  .activity-glance-card>div:first-child>strong{font-size:21px}
+}
