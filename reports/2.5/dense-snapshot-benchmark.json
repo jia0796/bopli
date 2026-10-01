@@ -1,0 +1,20 @@
+[
+  {
+    "round": 1,
+    "snapshotMs": 1062,
+    "signatureMs": 37,
+    "snapshotBytes": 20952716
+  },
+  {
+    "round": 2,
+    "snapshotMs": 1047,
+    "signatureMs": 38,
+    "snapshotBytes": 20952716
+  },
+  {
+    "round": 3,
+    "snapshotMs": 1139,
+    "signatureMs": 47,
+    "snapshotBytes": 20952716
+  }
+]

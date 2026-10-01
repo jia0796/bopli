@@ -9,7 +9,7 @@ async function onboard(page, name='Cayden') {
   await expect(page.getByText(`嗨，${name}`)).toBeVisible();
 }
 
-test.describe('Bopli 2.4 mobile core journey', () => {
+test.describe('Bopli 2.5 mobile core journey', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
   });

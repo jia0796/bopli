@@ -56,7 +56,7 @@ async function addSwitchableIdentityAndSwitch(page, name) {
   await expect(page.locator('.test-version-strip')).toContainText(`測試身分：${name}`);
 }
 
-test.describe('Bopli 2.4 mobile extended journeys', () => {
+test.describe('Bopli 2.5 mobile extended journeys', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
   });
@@ -107,6 +107,8 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
     await addTestMembers(page, ['小安']);
     await createActivity(page, '晚餐活動');
     await addSimpleExpense(page, '晚餐', 100);
+    await page.getByRole('button',{name:'結算',exact:true}).click();
+    await page.getByRole('button',{name:'結算所有帳單',exact:true}).click();
 
     await goHomeFromActivity(page);
     await addSwitchableIdentityAndSwitch(page, '小安');

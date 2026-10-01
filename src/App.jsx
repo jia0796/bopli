@@ -1,3 +1,6 @@
+import SettlementShare from './components/SettlementShare.jsx';
+import {nameError,assertName} from './lib/inputRules.js';
+import {accountingSignature,snapshotValid,buildSnapshot,validateHistoricalRepayments} from './lib/settlementBatch.js';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive, ArrowLeft, ArrowRight, ArrowUp, Bell, Check, CheckCircle2, ChevronDown, ChevronRight,
@@ -17,7 +20,7 @@ import {
 import { APP_LABEL } from './version.js';
 import { activityFinance } from './lib/activityFinance.js';
 import { appendCostcoDemo } from './lib/demo.js';
-import { buildSettlementPlan, calculateBalances, formatMoney, splitEqualRotating, suggestTransfers } from './lib/money.js';
+import { assertAmount, buildSettlementPlan, calculateBalances, formatMoney, splitEqualRotating, suggestTransfers } from './lib/money.js';
 import {
   canEditExpense, canManageActivity, canManageFinalRounding, changeGroupPolicy, EDIT_POLICY,
   isDeputy, isOwner, setDeputy, updateExpenseWithHistory,
@@ -52,23 +55,27 @@ function CreateGroupModal({ accountName, onClose, onSubmit }) {
   const [nickname,setNickname]=useState(accountName || '');
   const [error,setError]=useState('');
   const nickRef=useRef(null);
+  const nameIssue=nameError(nickname);
   function submit(e){e.preventDefault();const result=onSubmit(name.trim(),nickname.trim());if(result)setError(result);}
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>建立群組</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>群組名稱</span><input autoFocus value={name} onChange={(e)=>setName(e.target.value)} placeholder="例如：週末好友"/></label><label className="field"><span>你在這個群組的暱稱</span><input ref={nickRef} value={nickname} onFocus={(e)=>e.currentTarget.select()} onChange={(e)=>setNickname(e.target.value)} placeholder="朋友看到的名字"/></label><p className="muted small">預設帶入帳號名稱；直接輸入即可覆蓋，不會公開你的帳號名稱。</p>{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit">建立群組</button></form></section></div>;
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>建立群組</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>群組名稱</span><input autoFocus value={name} onChange={(e)=>setName(e.target.value)} placeholder="例如：大學好友"/></label><label className="field"><span>你在這個群組的暱稱</span><input ref={nickRef} value={nickname} onFocus={(e)=>e.currentTarget.select()} onChange={(e)=>setNickname(e.target.value)} placeholder="朋友看到的名字"/></label><p className="muted small">預設帶入帳號名稱；直接輸入即可覆蓋，不會公開你的帳號名稱。</p>{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit" disabled={Boolean(nameIssue)}>建立群組</button>{nickname&&nameIssue&&<p role="alert">{nameIssue}</p>}</form></section></div>;
 }
 
 function NameModal({ title, label, placeholder='', initial='', selectAll=false, onClose, onSubmit, buttonText='確定' }) {
   const [value,setValue]=useState(initial);
   const [error,setError]=useState('');
-  function submit(e){e.preventDefault();if(!value.trim())return setError('請輸入內容。');const result=onSubmit(value.trim());if(result)setError(result);}
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>{title}</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>{label}</span><input autoFocus value={value} onFocus={(e)=>selectAll&&e.currentTarget.select()} onChange={(e)=>setValue(e.target.value)} placeholder={placeholder}/></label>{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit">{buttonText}</button></form></section></div>;
+  const limited=/帳號|暱稱/.test(label);
+  const nameIssue=limited?nameError(value):'';
+  function submit(e){e.preventDefault();if(nameIssue)return setError(nameIssue);if(!value.trim())return setError('請輸入內容。');const result=onSubmit(value.trim());if(result)setError(result);}
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>{title}</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>{label}</span><input autoFocus value={value} onFocus={(e)=>selectAll&&e.currentTarget.select()} onChange={(e)=>setValue(e.target.value)} placeholder={placeholder}/></label>{(error||nameIssue)&&<p className="form-error" role="alert">{error||nameIssue}</p>}<button className="primary-button full" type="submit" disabled={Boolean(nameIssue)}>{buttonText}</button></form></section></div>;
 }
 
 function TestMembersModal({ group, nameFor, onClose, onSubmit }) {
   const [value,setValue]=useState('');
   const [error,setError]=useState('');
   const names=value.split(/\n|,/).map((name)=>name.trim()).filter(Boolean);
-  function submit(e){e.preventDefault();if(!names.length)return setError('請至少輸入一位成員暱稱。');const result=onSubmit(names);if(result)setError(result);}
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>新增測試成員</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>成員暱稱</span><textarea autoFocus rows="5" value={value} onChange={(e)=>{setValue(e.target.value);setError('');}} placeholder={'例如：\n小安\n阿哲\n小羽'}/></label><p className="muted small">測試版可直接建立本機假成員。每行一位，也可用逗號分隔；加入群組後，再到活動成員決定是否加入既有活動。</p>{names.length>0&&<p className="field-hint"><UsersRound size={15}/>準備新增 {names.length} 位成員到「{group.name}」。</p>}{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit"><UserRoundPlus size={17}/>新增 {names.length||''} 位測試成員</button></form></section></div>;
+  const nameIssue=names.map(nameError).find(Boolean);
+  function submit(e){e.preventDefault();if(nameIssue)return setError(nameIssue);if(!names.length)return setError('請至少輸入一位成員暱稱。');const result=onSubmit(names);if(result)setError(result);}
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal"><div className="modal-top"><h2>新增測試成員</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div><form className="form-stack" onSubmit={submit}><label className="field"><span>成員暱稱</span><textarea autoFocus rows="5" value={value} onChange={(e)=>{setValue(e.target.value);setError('');}} placeholder={'例如：\n小安\n阿哲\n小羽'}/></label><p className="muted small">測試版可直接建立本機假成員。每行一位，也可用逗號分隔；加入群組後，再到活動成員決定是否加入既有活動。</p>{nameIssue&&<p role="alert">{nameIssue}</p>}{names.length>0&&<p className="field-hint"><UsersRound size={15}/>準備新增 {names.length} 位成員到「{group.name}」。</p>}{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit"><UserRoundPlus size={17}/>新增 {names.length||''} 位測試成員</button></form></section></div>;
 }
 
 function InviteSheet({ group, activity, canInvite, onClose, onCopy, onAddTest }) {
@@ -336,6 +343,7 @@ export default function App() {
   const [data,setStoredData]=useState(()=>balanceStoreAllocations(loadStore()));
   function setData(update) { setStoredData(previous=>{
     const next=typeof update==='function'?update(previous):update;
+    if(next.expenses!==previous.expenses)validateHistoricalRepayments(next);
     return next.expenses===previous.expenses&&next.activities===previous.activities&&next.settlements===previous.settlements?next:balanceStoreAllocations(next);
   }); }
   const [screen,setScreen]=useState('home');
@@ -463,14 +471,15 @@ export default function App() {
   function markNotificationRead(key){setData((prev)=>({...prev,account:{...prev.account,readNotificationKeys:[...new Set([...(prev.account.readNotificationKeys||[]),key])]}}));}
   function openNotifications(){setScreen('notifications');}
 
-  if(!actor) return <div className="app-shell onboarding-shell"><div className="onboarding-content"><BrandLockup/><h1>開始使用 Bopli</h1><p className="muted">先設定帳號名稱。加入不同群組時，可以另外設定朋友看到的群組暱稱。</p><form className="onboarding-form" onSubmit={(e)=>{e.preventDefault();if(!guestName.trim())return;const next=createGuestStore(guestName);next.account.backupPromptSeen=true;setData(next);setModal({kind:'backupPrompt'});}}><label className="field"><span>帳號名稱</span><input autoFocus value={guestName} onChange={(e)=>setGuestName(e.target.value)} placeholder="例如：Cayden"/></label><button className="primary-button full" type="submit" disabled={!guestName.trim()}>開始使用</button><button className="text-action-button recover-link" type="button" onClick={()=>setModal({kind:'restoreGoogle'})}>已經使用過 Bopli？使用 Google 找回帳號</button></form><p className="prototype-note">{APP_LABEL} 是本機互動測試版；正式 Google 登入與跨裝置同步需接上 Firebase。</p></div>{modal?.kind==='restoreGoogle'&&<ConfirmModal title="使用 Google 找回帳號" confirmText="了解" cancelText="返回" onClose={()=>setModal(null)} onConfirm={()=>setModal(null)}><p>{APP_LABEL} 已保留這個入口與流程位置，但目前沒有連接 Google Authentication。正式版會用已連結的 Google 帳號找回原本資料。</p></ConfirmModal>}</div>;
+  if(!actor) return <div className="app-shell onboarding-shell"><div className="onboarding-content"><BrandLockup/><h1>開始使用 Bopli</h1><p className="muted">先設定帳號名稱。加入不同群組時，可以另外設定朋友看到的群組暱稱。</p><form className="onboarding-form" onSubmit={(e)=>{e.preventDefault();if(nameError(guestName))return;const next=createGuestStore(guestName);next.account.backupPromptSeen=true;setData(next);setModal({kind:'backupPrompt'});}}><label className="field"><span>帳號名稱</span><input autoFocus value={guestName} onChange={(e)=>setGuestName(e.target.value)} placeholder="例如：Bolip"/></label>{guestName&&nameError(guestName)&&<p role="alert">{nameError(guestName)}</p>}<button className="primary-button full" type="submit" disabled={Boolean(nameError(guestName))}>開始使用</button><button className="text-action-button recover-link" type="button" onClick={()=>setModal({kind:'restoreGoogle'})}>已經使用過 Bopli？使用 Google 找回帳號</button></form><p className="prototype-note">{APP_LABEL} 是本機互動測試版；正式 Google 登入與跨裝置同步需接上 Firebase。</p></div>{modal?.kind==='restoreGoogle'&&<ConfirmModal title="使用 Google 找回帳號" confirmText="了解" cancelText="返回" onClose={()=>setModal(null)} onConfirm={()=>setModal(null)}><p>{APP_LABEL} 已保留這個入口與流程位置，但目前沒有連接 Google Authentication。正式版會用已連結的 Google 帳號找回原本資料。</p></ConfirmModal>}</div>;
 
-  function createGroup(name,nickname){if(!name||!nickname)return'請完成群組名稱與群組暱稱。';const id=makeId();const g={id,name,ownerUid:actorId,deputyUids:[],memberIds:[actorId],nicknames:{[actorId]:nickname},editPolicy:EDIT_POLICY.OWNER_ONLY,allowMemberInvites:false,policyHistory:[],archived:false,createdAt:now(),lastUsedAt:now()};setData((prev)=>({...prev,groups:[...prev.groups,g]}));setModal(null);goGroup(id);return'';}
+  function createGroup(name,nickname){if(nameError(nickname))return nameError(nickname);if(!name||!nickname)return'請完成群組名稱與群組暱稱。';const id=makeId();const g={id,name,ownerUid:actorId,deputyUids:[],memberIds:[actorId],nicknames:{[actorId]:nickname},editPolicy:EDIT_POLICY.OWNER_ONLY,allowMemberInvites:false,policyHistory:[],archived:false,createdAt:now(),lastUsedAt:now()};setData((prev)=>({...prev,groups:[...prev.groups,g]}));setModal(null);goGroup(id);return'';}
   function createActivity(name){if(!name)return'請輸入活動名稱。';const a={id:makeId(),groupId,title:name,participantIds:[...group.memberIds],status:'active',createdAt:now(),auditHistory:[],memberReviewIds:[]};setData((prev)=>({...prev,activities:[...prev.activities,a]}));setModal(null);goActivity(a.id);return'';}
   function addTestMembers(names){
     if(!group)return'找不到群組。';
     if(!canInvite)return'目前沒有新增群組成員的權限。';
     const cleaned=names.map((name)=>name.trim()).filter(Boolean);
+    const issue=names.map(nameError).find(Boolean);if(issue)return issue;
     if(cleaned.length>50)return'一次最多新增 50 位測試成員。';
     const lowered=cleaned.map((name)=>name.toLocaleLowerCase('zh-TW'));
     if(new Set(lowered).size!==lowered.length)return'輸入的暱稱有重複，請調整後再新增。';
@@ -502,6 +511,7 @@ export default function App() {
   function toggleEditPolicy(){if(!isOwner(group,actorId))return;try{updateGroup(changeGroupPolicy(group,group.editPolicy===EDIT_POLICY.ALL?EDIT_POLICY.OWNER_ONLY:EDIT_POLICY.ALL,actorId,now()));}catch(e){notify(e.message);}}
 
   function saveExpense(fields,existingExpense,draftId){
+    try {assertAmount(fields.amount);validateHistoricalRepayments({...data,expenses:existingExpense?data.expenses.map(e=>e.id===existingExpense.id?{...e,...fields}:e):[...data.expenses,{...fields,id:'validation',activityId}]});}catch(e){return notify('修改會影響既有還款，請新增調整／更正支出。');}
     if(existingExpense){if(!canEditExpense(group,existingExpense,actorId,data.settlements))return notify('這筆支出目前不能修改。');setData((prev)=>({...prev,expenses:prev.expenses.map((item)=>item.id===existingExpense.id?updateExpenseWithHistory(item,fields,actorId,now(),makeId()):item)}));notify('修改已儲存，歷史紀錄已保留。');}
     else {const item={id:makeId(),activityId,createdBy:actorId,createdAt:now(),updatedAt:now(),revision:1,history:[],...fields};setData((prev)=>({...prev,expenses:[...prev.expenses,item],drafts:prev.drafts.filter((d)=>d.id!==draftId)}));notify('已新增支出。');}
     setModal(null);
@@ -515,6 +525,7 @@ export default function App() {
   function confirmDeleteExpense(expenseId){
     const expense=data.expenses.find((e)=>e.id===expenseId);
     if(!expense||!canEditExpense(group,expense,actorId,data.settlements)){setModal(null);return notify('這筆支出目前不能刪除。');}
+    try{validateHistoricalRepayments({...data,expenses:data.expenses.filter(e=>e.id!==expenseId)});}catch(e){setModal(null);return notify('刪除會影響既有還款，請新增調整／更正支出。');}
     setData((prev)=>({...prev,
       expenses:prev.expenses.filter((e)=>e.id!==expenseId),
       activities:prev.activities.map((a)=>a.id===expense.activityId?{...a,auditHistory:[...(a.auditHistory||[]),{id:makeId(),type:'expenseDeleted',by:actorId,at:now(),message:`刪除支出「${expense.title}」 ${formatMoney(expense.amount)}。`,notifyUids:a.participantIds.filter((id)=>id!==actorId)}]}:a)
@@ -552,7 +563,18 @@ export default function App() {
     notify('群組已永久刪除。');
   }
 
+
+  function settleAll(){
+    if(!canManageActivity(group,actorId)||snapshotValid(activity,activityExpenses))return;
+    try {const snapshot=buildSnapshot(activity,activityExpenses,activitySettlements,makeId(),now(),actorId);updateActivity({...activity,settlementSnapshot:snapshot,settlementSnapshots:[...(activity.settlementSnapshots||[]),snapshot]});notify('已結算，可記錄付款。');}catch(e){notify(e.message);}
+  }
+  function cancelPayment(s){
+    if(s.fromUid!==actorId||!['pending','disputed'].includes(s.status))return;
+    setData(prev=>({...prev,settlements:prev.settlements.map(x=>x.id===s.id?{...x,status:'cancelled',events:[...(x.events||[]),{type:'cancelled',by:actorId,at:now()}]}:x),activities:prev.activities.map(a=>a.id===s.activityId?{...a,settlementSnapshot:null}:a)}));notify('已取消付款，歷史紀錄保留。');
+  }
+
   function requestPayment(transfer,amount,method,meta){
+    if(!snapshotValid(activity,activityExpenses))return notify('請先由群主或副群主結算所有帳單。');
     const current=mergeSettlementTransfers(finalFinance.transfers).find((t)=>t.fromUid===actorId&&t.toUid===transfer.toUid);
     if(transfer.fromUid!==actorId||!current||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000||amount>current.amount)return notify('付款金額超過目前可支付金額，請重新檢查。');
     transfer=current;
@@ -567,9 +589,10 @@ export default function App() {
       const activities=manualConsumption.length?prev.activities.map((a)=>{
         if(a.id!==activityId)return a;
         const consumed=Object.fromEntries(manualConsumption.map((item)=>[item.id,item.amount]));
-        return {...a,settlementManualTransfers:(a.settlementManualTransfers||[]).map((row)=>({...row,amount:Math.max(0,row.amount-(consumed[row.id]||0))})).filter((row)=>row.amount>0)};
+        const updated={...a,settlementManualTransfers:(a.settlementManualTransfers||[]).map((row)=>({...row,amount:Math.max(0,row.amount-(consumed[row.id]||0))})).filter((row)=>row.amount>0)};
+        return {...updated,settlementSnapshot:{...a.settlementSnapshot,signature:accountingSignature(updated,prev.expenses.filter(e=>e.activityId===a.id))}};
       }):prev.activities;
-      return {...prev,activities,settlements:[...prev.settlements,{id:makeId(),activityId,fromUid:actorId,toUid:transfer.toUid,amount,method,methodOther:meta.other,note:meta.note,paidDate:meta.date,status:'pending',createdBy:actorId,createdAt:now(),manualPlanConsumption:manualConsumption,events:[{type:'pending',by:actorId,at:now()}]}]};
+      return {...prev,activities,settlements:[...prev.settlements,{id:makeId(),activityId,fromUid:actorId,toUid:transfer.toUid,amount,method,methodOther:meta.other,note:meta.note,paidDate:meta.date,status:'pending',snapshotId:activity.settlementSnapshot.id,accountingBasis:activity.settlementSnapshot.basis.map(row=>({expenseId:row.expenseId,net:{[actorId]:row.net[actorId]||0,[transfer.toUid]:row.net[transfer.toUid]||0}})).filter(row=>Object.values(row.net).some(net=>net!==0)),createdBy:actorId,createdAt:now(),manualPlanConsumption:manualConsumption,events:[{type:'pending',by:actorId,at:now()}]}]};
     });
     setModal(null);notify(`已記錄付款，等待${nameFor(transfer.toUid)}確認。`);
   }
@@ -585,7 +608,7 @@ export default function App() {
     notify('已重新送出，等待收款人確認。');
   }
 
-  function changeMyNickname(next){if(!group)return'找不到群組。';if(group.memberIds.some((id)=>id!==actorId&&nameFor(id,group).toLocaleLowerCase('zh-TW')===next.toLocaleLowerCase('zh-TW')))return'這個群組已有人使用相同暱稱。';const old=nameFor(actorId,group);updateGroup({...group,nicknames:{...(group.nicknames||{}),[actorId]:next},policyHistory:[...(group.policyHistory||[]),{id:makeId(),type:'nickname',by:actorId,at:now(),from:old,to:next}]});notify('群組暱稱已更新，所有活動同步顯示。');setModal(null);return'';}
+  function changeMyNickname(next){if(nameError(next))return nameError(next);if(!group)return'找不到群組。';if(group.memberIds.some((id)=>id!==actorId&&nameFor(id,group).toLocaleLowerCase('zh-TW')===next.toLocaleLowerCase('zh-TW')))return'這個群組已有人使用相同暱稱。';const old=nameFor(actorId,group);updateGroup({...group,nicknames:{...(group.nicknames||{}),[actorId]:next},policyHistory:[...(group.policyHistory||[]),{id:makeId(),type:'nickname',by:actorId,at:now(),from:old,to:next}]});notify('群組暱稱已更新，所有活動同步顯示。');setModal(null);return'';}
 
   function promoteDeputy(targetUid,enabled){try{updateGroup(setDeputy(group,targetUid,enabled,actorId,now()));notify(enabled?'已設為副群主。':'已取消副群主。');}catch(e){notify(e.message);}}
   function removeGroupMember(targetUid){if(!isOwner(group,actorId))return;setModal({kind:'confirmRemoveGroupMember',targetUid});}
@@ -703,7 +726,7 @@ export default function App() {
         {!activity.participantIds.includes(actorId)&&<div className="info-card historical-ledger-notice"><Info size={17}/><p>你已退出這個活動；目前只顯示與你有關的既有帳目與結算。</p></div>}
         {tab==='expenses'&&<ExpensesTab activity={activity} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} drafts={activity.participantIds.includes(actorId)?data.drafts.filter((d)=>d.activityId===activity.id):[]} actorId={actorId} nameFor={nameFor} canAddExpense={activity.participantIds.includes(actorId)} canDeleteExpense={(e)=>canEditExpense(group,e,actorId,data.settlements)} finances={finalFinance} activityStatus={finances.status} filter={expenseFilter} setFilter={setExpenseFilter} locked={lockedActivity} onExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})} onDeleteExpense={requestDeleteExpense} onAdd={()=>setModal({kind:'expense'})} onSettlement={()=>switchActivityTab('settlements')} onDraft={(id)=>setModal({kind:'expense',draftId:id})} onDiscardDraft={(id)=>setData((prev)=>({...prev,drafts:prev.drafts.filter((d)=>d.id!==id)}))} onReview={()=>setScreen('activityMembers')}/>} 
         {tab==='ledger'&&<MemberLedger finances={finalFinance} participantIds={activity.participantIds.includes(actorId)?ledgerParticipantIds:[actorId]} users={Object.fromEntries(ledgerParticipantIds.map((id)=>[id,{...data.users[id],nickname:nameFor(id)}]))} actorId={actorId} expenses={activity.participantIds.includes(actorId)?activityExpenses:activityExpenses.filter((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)} settlements={activity.participantIds.includes(actorId)?activitySettlements:activitySettlements.filter((x)=>x.fromUid===actorId||x.toUid===actorId)} onOpenExpense={(id)=>setModal({kind:'expenseDetail',expenseId:id})}/>} 
-        {tab==='settlements'&&<SettlementTab activity={activity} group={group} actorId={actorId} nameFor={nameFor} expenses={activityExpenses} settlements={activitySettlements} baseBalances={finances.balances} baseProjected={finances.projected} finalFinance={finalFinance} onUpdateActivity={updateActivity} onPay={(transfer)=>setModal({kind:'payment',transfer})} onConfirm={confirmPayment} onIssue={(settlement)=>setModal({kind:'issue',settlement})} onResubmit={resubmitPayment} onAll={()=>setScreen('allSettlements')}/>} 
+        {tab==='settlements'&&<SettlementTab activity={activity} group={group} actorId={actorId} nameFor={nameFor} expenses={activityExpenses} settlements={activitySettlements} baseBalances={finances.balances} baseProjected={finances.projected} finalFinance={finalFinance} onUpdateActivity={updateActivity} onPay={(transfer)=>setModal({kind:'payment',transfer})} onConfirm={confirmPayment} onIssue={(settlement)=>setModal({kind:'issue',settlement})} onResubmit={resubmitPayment} onAll={()=>setScreen('allSettlements')} onSettle={settleAll} onCancel={cancelPayment}/>}
       </>}
     </main>
 
@@ -714,7 +737,7 @@ export default function App() {
 
     {modal?.kind==='backupPrompt'&&<ConfirmModal title="建議連結 Google 帳號" confirmText="前往「我的」" cancelText="稍後再說" onClose={()=>setModal(null)} onConfirm={()=>{setModal(null);setScreen('profile');}}><p>連結 Google 後，日後更換裝置或重新登入時，可以更容易找回你的 Bopli 帳號與資料。</p><p className="muted small">也可以之後到「我的 → 帳號」完成連結；這個提示只主動出現一次。</p></ConfirmModal>}
     {modal?.kind==='createGroup'&&<CreateGroupModal accountName={accountName()} onClose={()=>setModal(null)} onSubmit={createGroup}/>} 
-    {modal?.kind==='createActivity'&&<NameModal title="建立活動" label="活動名稱" placeholder="例如：好市多採買" onClose={()=>setModal(null)} onSubmit={createActivity} buttonText="建立活動"/>}
+    {modal?.kind==='createActivity'&&<NameModal title="建立活動" label="活動名稱" placeholder="例如：週末聚會" onClose={()=>setModal(null)} onSubmit={createActivity} buttonText="建立活動"/>}
     {modal?.kind==='invite'&&group&&<InviteSheet group={group} activity={activity} canInvite={canInvite} onClose={()=>setModal(null)} onAddTest={()=>setModal({kind:'testMembers'})} onCopy={async(link,joinActivity)=>{try{await navigator.clipboard?.writeText(link);notify(`邀請連結已複製${joinActivity?'，加入者將同時加入目前活動':''}。`);}catch{notify('已準備邀請連結。');}setModal(null);}}/>}
     {modal?.kind==='testMembers'&&group&&<TestMembersModal group={group} nameFor={nameFor} onClose={()=>setModal(null)} onSubmit={addTestMembers}/>} 
     {modal?.kind==='accountName'&&<NameModal title="修改帳號名稱" label="帳號名稱" initial={accountName()} selectAll onClose={()=>setModal(null)} onSubmit={(next)=>{setData((prev)=>({...prev,users:{...prev.users,[actorId]:{...prev.users[actorId],accountName:next,nickname:next}}}));setModal(null);notify('帳號名稱已更新；既有群組暱稱不受影響。');return'';}} buttonText="儲存"/>}
@@ -738,6 +761,7 @@ export default function App() {
 }
 
 function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, activityStatus, filter, setFilter, locked, canAddExpense=true, canDeleteExpense, onExpense, onDeleteExpense, onAdd, onSettlement, onDraft, onDiscardDraft, onReview }) {
+  const [deleteDraft,setDeleteDraft]=useState(null);
   const [query,setQuery]=useState('');
   const myBalance=finances.balances?.[actorId]||0;
   const normalized=query.trim().toLocaleLowerCase('zh-TW');
@@ -755,18 +779,20 @@ function ExpensesTab({ activity, expenses, drafts, actorId, nameFor, finances, a
   const activityTotal=expenses.reduce((sum,e)=>sum+(e.amount||0),0);
   const statusTitle=activityStatus==='notStarted'?'尚未開始記帳':myBalance>0?`你要收 ${formatMoney(myBalance)}`:myBalance<0?`你要付 ${formatMoney(Math.abs(myBalance))}`:activityStatus==='settled'?'目前已結清':'目前沒有我的應收應付';
   const statusHint=expenses.length===0?'記下第一筆，Bopli 會自動算每個人的分攤。':myBalance===0?'目前沒有需要處理的款項。':'可以先記帳，最後再到結算一次處理。';
-  return <><section className="activity-glance-card" id="expense-page-top"><div><small>你的狀態</small><strong>{statusTitle}</strong><span>{statusHint}</span></div><div className="activity-primary-actions">{canAddExpense&&<button className="primary-button" type="button" onClick={onAdd}><Plus size={16}/>記一筆</button>}{expenses.length>0&&<button className="outline-button" type="button" onClick={onSettlement}>去結算</button>}</div><small className="activity-total-note">活動總支出 {formatMoney(activityTotal)}</small></section>
+  return <>{deleteDraft&&<ConfirmModal title="刪除這份草稿？" confirmText="刪除" cancelText="取消" danger onClose={()=>setDeleteDraft(null)} onConfirm={()=>{onDiscardDraft(deleteDraft);setDeleteDraft(null);}}>刪除後無法復原。</ConfirmModal>}<section className="activity-glance-card" id="expense-page-top"><div><small>你的狀態</small><strong>{statusTitle}</strong><span>{statusHint}</span></div><div className="activity-primary-actions">{canAddExpense&&<button className="primary-button" type="button" onClick={onAdd}><Plus size={16}/>記一筆</button>}{expenses.length>0&&<button className="outline-button" type="button" onClick={onSettlement}>去結算</button>}</div><small className="activity-total-note">活動總支出 {formatMoney(activityTotal)}</small></section>
     {activity.memberReviewIds?.length>0&&<button className="member-review-banner" type="button" onClick={onReview}><Info size={16}/><span>有 {activity.memberReviewIds.length} 位成員尚未套用至既有共同支出</span><ChevronRight size={16}/></button>}
-    {drafts.length>0&&<section><div className="section-heading"><div><h2>草稿</h2><p>草稿不計入活動總額與結算。</p></div></div><div className="draft-list">{drafts.slice(0,3).map((d)=><article className="draft-card" key={d.id}><button type="button" className="draft-main" onClick={()=>onDraft(d.id)}><strong>{d.title}</strong><small>{d.status||'尚未完成'}</small><span>繼續編輯 <ChevronRight size={15}/></span></button><button className="icon-button" type="button" onClick={()=>onDiscardDraft(d.id)}><MoreHorizontal size={18}/></button></article>)}</div></section>}
+    {drafts.length>0&&<section><div className="section-heading"><div><h2>草稿</h2><p>草稿不計入活動總額與結算。</p></div></div><div className="draft-list">{drafts.slice(0,3).map((d)=><article className="draft-card" key={d.id}><button type="button" className="draft-main" onClick={()=>onDraft(d.id)}><strong>{d.title}</strong><small>{d.status||'尚未完成'}</small><span>繼續編輯 <ChevronRight size={15}/></span></button><button className="icon-button" type="button" aria-label="刪除草稿" onClick={()=>setDeleteDraft(d.id)}><X size={18}/></button></article>)}</div></section>}
     <div className="section-heading"><div><h2>最近帳目</h2><p>{expenses.length?'需要時可搜尋或篩選。':'新增第一筆支出開始分帳。'}</p></div><span className="count-pill">{expenses.length} 筆</span></div>
     {expenses.length>0&&<><label className="ledger-search expense-search"><Search size={17}/><input type="search" value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="搜尋支出紀錄"/></label><div className="ledger-filters expense-filters"><button type="button" className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>全部</button><button type="button" className={filter==='mine'?'active':''} onClick={()=>setFilter('mine')}>與我有關</button></div></>}
     {expenses.length===0?<EmptyState icon={ReceiptText} title="還沒有任何支出" detail={canAddExpense?"新增第一筆支出，Bopli 會自動計算每個人的分攤。":"目前沒有與你有關的歷史支出。"} action={canAddExpense?"新增第一筆支出":null} onAction={canAddExpense?onAdd:null}/>:visible.length===0?<EmptyState icon={Search} title="找不到符合的支出" detail="請調整搜尋關鍵字或篩選條件。"/>:<div className="card-list expense-swipe-list">{[...visible].reverse().map((e)=><SwipeExpenseRow key={e.id} expense={e} userName={nameFor} actorId={actorId} canDelete={Boolean(canDeleteExpense?.(e))} onOpen={onExpense} onDelete={onDeleteExpense}/>)}</div>}
 
-    {locked&&<div className="info-card"><LockKeyhole size={17}/><p>活動已有待確認／已確認／有爭議的還款紀錄，支出修改與刪除受到保護。</p></div>}
+    {locked&&<div className="info-card"><LockKeyhole size={17}/><p>與既有還款相關的支出受到保護；其他支出可編輯，修改後需重新結算。</p></div>}
   </>;
 }
 
-function SettlementTab({ activity, group, actorId, nameFor, expenses, settlements, baseBalances, baseProjected, finalFinance, onUpdateActivity, onPay, onConfirm, onIssue, onResubmit, onAll }) {
+function SettlementTab({ activity, group, actorId, nameFor, expenses, settlements, baseBalances, baseProjected, finalFinance, onUpdateActivity, onPay, onConfirm, onIssue, onResubmit, onAll, onSettle, onCancel }) {
+  const [sharing,setSharing]=useState(false);
+  const ready=snapshotValid(activity,expenses);
   const [showPlanEditor,setShowPlanEditor]=useState(false);
   const [whyTransfer,setWhyTransfer]=useState(null);
   const disputedMine=settlements.filter((s)=>s.status==='disputed'&&(s.fromUid===actorId||s.toUid===actorId));
@@ -808,19 +834,19 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
     setShowPlanEditor(false);
   }
 
-  if(expenses.length===0)return <EmptyState icon={ReceiptText} title="尚未開始記帳" detail="新增第一筆支出後，這裡才會顯示結算狀態。"/>;
+  if(expenses.length===0)return <><EmptyState icon={ReceiptText} title="尚未開始記帳" detail="新增第一筆支出後，這裡才會顯示結算狀態。"/><button className="outline-button full" onClick={()=>setSharing(true)}>分享</button>{sharing&&<SettlementShare group={group} activity={activity} actorId={actorId} finance={finalFinance} settlements={settlements} nameFor={nameFor} onClose={()=>setSharing(false)}/>}</>;
 
   const summaryTitle=incomingPendingTotal>0?`有 ${formatMoney(incomingPendingTotal)} 等你確認`:myProjected<0?`還要付 ${formatMoney(Math.abs(myProjected))}`:myProjected>0?`還要收 ${formatMoney(myProjected)}`:outgoingPendingTotal>0?'付款等待對方確認':'目前沒有未安排款項';
   const summaryHint=[outgoingPendingTotal>0?`待對方確認 ${formatMoney(outgoingPendingTotal)}`:'',incomingPendingTotal>0?`待我確認 ${formatMoney(incomingPendingTotal)}`:''].filter(Boolean).join(' · ');
 
-  return <>{allClear?<div className="settled-hero"><CheckCircle2 size={31}/><h2>目前已結清</h2><p>這個活動沒有待處理的款項。</p></div>:<>
+  return <><div className="snapshot-status" role="status">{ready?'已結算：可記錄付款':'待重新結算：暫不可新增付款，既有付款仍可處理'}</div>{canManage&&<button className="primary-button full" disabled={ready} onClick={onSettle}>{ready?'已結算':'結算所有帳單'}</button>}<button className="outline-button full" onClick={()=>setSharing(true)}>分享</button>{sharing&&<SettlementShare group={group} activity={activity} actorId={actorId} finance={finalFinance} settlements={settlements} nameFor={nameFor} onClose={()=>setSharing(false)}/>}{allClear?<div className="settled-hero"><CheckCircle2 size={31}/><h2>目前已結清</h2><p>這個活動沒有待處理的款項。</p></div>:<>
     <section className="settlement-me-card"><small>我的結算</small><strong>{summaryTitle}</strong>{summaryHint&&<span>{summaryHint}</span>}</section>
 
     {pendingIncoming.length>0&&<section><div className="section-heading"><div><h2>待我確認</h2><p>收到錢後再確認，待確認不等於已結清。</p></div></div><div className="card-list">{pendingIncoming.map((s)=><div className="repayment-card priority-card" key={s.id}><div className="repayment-top"><strong>{nameFor(s.fromUid)} → 我</strong><span className="status-tag">待確認</span></div><strong className="repayment-amount">{formatMoney(s.amount)}</strong><div className="repayment-actions"><button className="primary-button" type="button" onClick={()=>onConfirm(s)}><Check size={15}/>確認已收到</button><button className="outline-button" type="button" onClick={()=>onIssue(s)}>金額有問題</button></div></div>)}</div></section>}
 
-    {disputedMine.length>0&&<section><div className="section-heading"><h2>還款需要處理</h2></div>{disputedMine.map((s)=><div className="repayment-card" key={s.id}><strong>{nameFor(s.fromUid)} → {nameFor(s.toUid)} · {formatMoney(s.amount)}</strong><p>這筆付款有問題，金額保留中，不會再次安排付款。</p>{s.issue?.note&&<p>{s.issue.note}</p>}{s.fromUid===actorId?<button className="outline-button" type="button" onClick={()=>onResubmit(s)}>已處理，重新送出確認</button>:<p className="muted small">等待付款人處理後重新送出。</p>}</div>)}</section>}
+    {disputedMine.length>0&&<section><div className="section-heading"><h2>還款需要處理</h2></div>{disputedMine.map((s)=><div className="repayment-card" key={s.id}><strong>{nameFor(s.fromUid)} → {nameFor(s.toUid)} · {formatMoney(s.amount)}</strong><p>這筆付款有問題，金額保留中，不會再次安排付款。</p>{s.issue?.note&&<p>{s.issue.note}</p>}{s.fromUid===actorId?<><button className="outline-button" type="button" onClick={()=>onResubmit(s)}>已處理，重新送出確認</button><button className="text-action-button" onClick={()=>onCancel(s)}>取消這筆付款</button></>:<p className="muted small">等待付款人處理後重新送出。</p>}</div>)}</section>}
 
-    {payRows.length>0&&<section><div className="section-heading"><div><h2>我要付</h2><p>直接看要付給誰、待確認多少、還剩多少。</p></div></div><div className="card-list">{payRows.map((row)=><div className="transfer-card settlement-route-card" key={row.toUid}><div className="transfer-line"><PersonAvatar name={nameFor(row.toUid)} small/><div className="transfer-description"><strong>付給 {nameFor(row.toUid)}</strong>{row.pending>0&&<small>待對方確認 {formatMoney(row.pending)}</small>}{row.remaining>0&&<small>尚需支付 {formatMoney(row.remaining)}</small>}</div><strong>{formatMoney(row.remaining+row.pending)}</strong></div>{row.remaining>0&&<div className="settlement-route-actions"><button className="text-action-button" type="button" onClick={()=>setWhyTransfer(row.transfer)}>為什麼我要付他？</button><button className="outline-button" type="button" onClick={()=>onPay(row.transfer)}>記錄付款</button></div>}</div>)}</div></section>}
+    {payRows.length>0&&<section><div className="section-heading"><div><h2>我要付</h2><p>直接看要付給誰、待確認多少、還剩多少。</p></div></div><div className="card-list">{payRows.map((row)=><div className="transfer-card settlement-route-card" key={row.toUid}><div className="transfer-line"><PersonAvatar name={nameFor(row.toUid)} small/><div className="transfer-description"><strong>付給 {nameFor(row.toUid)}</strong>{row.pending>0&&<small>待對方確認 {formatMoney(row.pending)}</small>}{row.remaining>0&&<small>尚需支付 {formatMoney(row.remaining)}</small>}</div><strong>{formatMoney(row.remaining+row.pending)}</strong></div>{row.remaining>0&&<div className="settlement-route-actions"><button className="text-action-button" type="button" onClick={()=>setWhyTransfer(row.transfer)}>為什麼我要付他？</button><button className="outline-button" type="button" disabled={!ready} onClick={()=>onPay(row.transfer)}>記錄付款</button></div>}</div>)}</div></section>}
 
     {receive.length>0&&<section><div className="section-heading"><div><h2>我要收</h2><p>清楚查看還有哪些人尚未付款。</p></div></div><div className="card-list">{receive.map((t)=><div className="transfer-card" key={`${t.fromUid}-${t.toUid}`}><div className="transfer-line"><PersonAvatar name={nameFor(t.fromUid)} small/><div className="transfer-description"><strong>{nameFor(t.fromUid)} → 我</strong><small>尚待付款</small></div><strong>{formatMoney(t.amount)}</strong></div></div>)}</div></section>}
   </>}

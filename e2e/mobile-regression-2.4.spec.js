@@ -1,19 +1,21 @@
+import {buildSnapshot} from '../src/lib/settlementBatch.js';
 import { test, expect } from '@playwright/test';
 
-const key='bopli-test-2.4-v1';
-const marker='bopli-test-2.4-reset-once-20261001';
+const key='bopli-test-2.5-v1';
+const marker='bopli-test-2.5-reset-once-20261001';
 function fixture(actor='debtor', {empty=false, review=false, large=false}={}) {
   const ids=large?['owner',...Array.from({length:29},(_,i)=>'m'+i)]:['owner','debtor','deputy'];
   const users=Object.fromEntries(ids.map(id=>[id,{id,nickname:id==='owner'?'Owner':id==='debtor'?'Debtor':id==='deputy'?'Deputy':id,accountName:id,isGuest:true}]));
   const at='2026-10-01T00:00:00Z';
   const expense={id:'e',activityId:'a',title:'晚餐',amount:large?3000:2000,paidBy:'owner',createdBy:'owner',participantIds:large?ids:['owner','debtor'],splitMode:'equal',allocations:large?Object.fromEntries(ids.map(id=>[id,100])):{owner:1000,debtor:1000},createdAt:at,updatedAt:at,revision:1,history:[]};
-  return {version:24,currentUserId:actor,account:{primaryUserId:'owner',testIdentityIds:ids.filter(id=>id!=='owner'),backupPromptSeen:true},users,
+  return {version:25,currentUserId:actor,account:{primaryUserId:'owner',testIdentityIds:ids.filter(id=>id!=='owner'),backupPromptSeen:true},users,
     groups:[{id:'g',name:'回歸群組',ownerUid:'owner',deputyUids:large?[]:['deputy'],memberIds:ids,nicknames:Object.fromEntries(ids.map(id=>[id,users[id].nickname])),editPolicy:'allMembers',createdAt:at}],
     activities:[{id:'a',groupId:'g',title:'回歸活動',participantIds:ids,memberReviewIds:review?['debtor']:[],auditHistory:[],createdAt:at,settlementManualTransfers:empty?[]:[{id:'manual',fromUid:large?'m0':'debtor',toUid:'owner',amount:400}]}],
     expenses:empty?[]:large?Array.from({length:35},(_,i)=>({...expense,id:'e'+i,title:'支出'+i})): [expense],
     settlements:[],drafts:[],notifications:[]};
 }
 async function seed(page,data) {
+  data.activities[0].settlementSnapshot=buildSnapshot(data.activities[0],data.expenses,data.settlements,'fixture-snapshot','2026-10-01','owner');
   const token='fixture-'+Date.now()+'-'+Math.random();
   await page.addInitScript(({key,marker,data,token})=>{
     if(sessionStorage.getItem(token))return;
@@ -36,9 +38,9 @@ async function switchTo(page,id) {
 }
 async function state(page) {return page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);}
 
-test('2.4 reset removes every old key only once, preserving new account after reload',async({page})=>{
+test('2.5 reset removes every old key only once, preserving new account after reload',async({page})=>{
   await page.goto('/');
-  const keys=[key,'bopli-test-2.3-v1','bopli-test-2.2-v1','bopli-2.1.1-v1','bopli-2.1-v1'];
+  const keys=['bopli-test-2.4-v1','bopli-test-2.3-v1','bopli-test-2.2-v1','bopli-2.1.1-v1','bopli-2.1-v1'];
   await page.evaluate(({keys,marker})=>{
     localStorage.removeItem(marker);for(const k of keys)localStorage.setItem(k,'old');
     localStorage.setItem('unrelated','keep');
