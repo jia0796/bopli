@@ -28,3 +28,36 @@ test('轉帳建議總額與欠款相同', () => {
 });
 test('所有人結清後沒有建議', () => assert.deepEqual(suggestTransfers({a:0,b:0}),[]));
 test('不平衡餘額拒絕轉帳建議', () => assert.throws(()=>suggestTransfers({a:100,b:-50}), /不平衡/));
+
+
+test('還款金額必須為正的安全整數', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  for (const amount of [-1, 0, 10.5, NaN, Infinity]) {
+    assert.throws(()=>calculateBalances(['a','b'],[expense],[{id:`s-${String(amount)}`,fromUid:'b',toUid:'a',amount,status:'confirmed'}]),/還款|金額|整數/);
+  }
+});
+
+test('禁止自己還自己', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[{id:'s',fromUid:'b',toUid:'b',amount:10,status:'confirmed'}]),/自己/);
+});
+
+test('禁止超額還款', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[{id:'s',fromUid:'b',toUid:'a',amount:51,status:'confirmed'}]),/超過/);
+});
+
+test('禁止重複 settlement id', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  const s={id:'dup',fromUid:'b',toUid:'a',amount:25,status:'confirmed'};
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[s,{...s}]),/重複/);
+});
+
+test('合法部分還款可連續確認直到結清', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  const settlements=[
+    {id:'s1',fromUid:'b',toUid:'a',amount:20,status:'confirmed'},
+    {id:'s2',fromUid:'b',toUid:'a',amount:30,status:'confirmed'},
+  ];
+  assert.deepEqual(calculateBalances(['a','b'],[expense],settlements),{a:0,b:0});
+});
