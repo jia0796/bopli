@@ -176,3 +176,29 @@ test('DIAGNOSTIC: 重複 settlement id 不應被重複計算', () => {
   const balances=calculateBalances(['a','b'],[expense],[same,{...same}]);
   assert.deepEqual(balances,{a:25,b:-25});
 });
+
+
+test('STRESS localStorage 容量估算：大型帳本序列化體積', () => {
+  const users={};
+  const groups=[];
+  const activities=[];
+  const expenses=[];
+  for(let g=0;g<3;g++){
+    const memberIds=Array.from({length:25},(_,i)=>`G${g}U${i}`);
+    memberIds.forEach((id)=>{users[id]={id,nickname:id,accountName:id};});
+    groups.push({id:`g${g}`,name:`group-${g}`,ownerUid:memberIds[0],memberIds,nicknames:{},deputyUids:[],policyHistory:[]});
+    for(let a=0;a<10;a++){
+      const aid=`g${g}a${a}`;
+      activities.push({id:aid,groupId:`g${g}`,title:`activity-${a}`,participantIds:memberIds,auditHistory:[],memberReviewIds:[]});
+      const rand=rng(g*100+a+1);
+      for(let i=0;i<500;i++){
+        const e=makeExpense(`${aid}-${i}`,memberIds,rand,i);
+        expenses.push({...e,activityId:aid,createdAt:'2026-01-01T00:00:00.000Z',updatedAt:'2026-01-01T00:00:00.000Z',revision:1,history:[]});
+      }
+    }
+  }
+  const store={version:23,currentUserId:'G0U0',account:{primaryUserId:'G0U0',testIdentityIds:[]},users,groups,activities,expenses,settlements:[],drafts:[],notifications:[]};
+  const bytes=Buffer.byteLength(JSON.stringify(store),'utf8');
+  console.log(`STRESS_STORE_BYTES=${bytes}`);
+  assert.ok(bytes>0);
+});
