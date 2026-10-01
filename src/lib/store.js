@@ -1,14 +1,16 @@
 import { splitEqual } from './money.js';
 import { EDIT_POLICY } from './domain.js';
 
-export const STORAGE_KEY = 'bopli-test-2.2-v1';
-const ONE_TIME_RESET_KEY = 'bopli-test-2.2-reset-once-20260930';
+import { STORE_SCHEMA_VERSION } from '../version.js';
+
+export const STORAGE_KEY = 'bopli-test-2.3-v1';
+export const LEGACY_STORAGE_KEYS = ['bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
 export const now = () => new Date().toISOString();
 export const makeId = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function freshStore() {
   return {
-    version: 22,
+    version: STORE_SCHEMA_VERSION,
     currentUserId: null,
     account: { googleLinked: false, googleEmail: '', backupPromptSeen: false, primaryUserId: '', testIdentityIds: [] },
     users: {},
@@ -43,30 +45,41 @@ function normalizeActivity(activity) {
   };
 }
 
+function isUsableStore(item) {
+  return Boolean(item?.users && Array.isArray(item.groups) && Array.isArray(item.activities) &&
+    Array.isArray(item.expenses) && Array.isArray(item.settlements));
+}
+
+export function migrateStore(item) {
+  if (!isUsableStore(item)) return null;
+  return {
+    ...freshStore(),
+    ...item,
+    version: STORE_SCHEMA_VERSION,
+    account: {
+      ...freshStore().account,
+      ...(item.account || {}),
+      testIdentityIds: Array.isArray(item.account?.testIdentityIds) ? item.account.testIdentityIds : [],
+    },
+    groups: item.groups.map(normalizeGroup),
+    activities: item.activities.map(normalizeActivity),
+    drafts: Array.isArray(item.drafts) ? item.drafts : [],
+    notifications: Array.isArray(item.notifications) ? item.notifications : [],
+  };
+}
+
 export function loadStore() {
   try {
-    // One-time reset requested specifically for bopli_test.2.2.
-    // The marker prevents refreshes and later updates from repeatedly deleting data.
-    if (localStorage.getItem(ONE_TIME_RESET_KEY) !== 'done') {
-      ['bopli-2.1-v1', 'bopli-2.1.1-v1', 'bopli-test-2.2-v1'].forEach((key) => localStorage.removeItem(key));
-      localStorage.setItem(ONE_TIME_RESET_KEY, 'done');
-    }
-    const item = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (item?.version === 22 && item.users && Array.isArray(item.groups) &&
-      Array.isArray(item.activities) && Array.isArray(item.expenses) && Array.isArray(item.settlements)) {
-      return {
-        ...freshStore(),
-        ...item,
-        account: {
-          ...freshStore().account,
-          ...(item.account || {}),
-          testIdentityIds: Array.isArray(item.account?.testIdentityIds) ? item.account.testIdentityIds : [],
-        },
-        groups: item.groups.map(normalizeGroup),
-        activities: item.activities.map(normalizeActivity),
-        drafts: Array.isArray(item.drafts) ? item.drafts : [],
-        notifications: Array.isArray(item.notifications) ? item.notifications : [],
-      };
+    const current = migrateStore(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+    if (current) return current;
+
+    // 2.3 never deletes prior-version data. It copies the newest usable legacy store
+    // into the 2.3 schema, leaving the original key untouched for rollback/testing.
+    for (const key of LEGACY_STORAGE_KEYS) {
+      const migrated = migrateStore(JSON.parse(localStorage.getItem(key)));
+      if (!migrated) continue;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
     }
   } catch { /* Corrupted local prototype data should not crash the UI. */ }
   return freshStore();
