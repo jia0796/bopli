@@ -25,8 +25,9 @@ describe('2.3 clarity UI',()=>{
   });
 
   it('一般成員不會看到群主專屬永久刪除操作',()=>{
-    render(<GroupSettings group={group} actorId="member" nameFor={()=>''} onBack={vi.fn()} onToggleInvites={vi.fn()} onToggleEdit={vi.fn()} onMembers={vi.fn()} onArchive={vi.fn()} onDelete={vi.fn()}/>);
+    const first=render(<GroupSettings group={group} actorId="member" nameFor={()=>''} onBack={vi.fn()} onToggleInvites={vi.fn()} onToggleEdit={vi.fn()} onMembers={vi.fn()} onArchive={vi.fn()} onDelete={vi.fn()}/>);
     expect(screen.queryByText('永久刪除群組')).not.toBeInTheDocument();
+    first.unmount();
     render(<ActivitySettings activity={activity} group={group} canManage={false} canDelete={false} nameFor={()=>''} onBack={vi.fn()} onMembers={vi.fn()} onDelete={vi.fn()}/>);
     expect(screen.queryByText('永久刪除活動')).not.toBeInTheDocument();
   });
