@@ -2,7 +2,7 @@ import React from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ExpenseForm from './ExpenseForm.jsx';
-import { ActivitySettings, GroupSettings } from './SecondaryScreens.jsx';
+import { ActivityMembers, ActivitySettings, GroupSettings } from './SecondaryScreens.jsx';
 
 const group={id:'g',name:'法國旅行',ownerUid:'owner',memberIds:['owner','member'],deputyUids:[],allowMemberInvites:false,editPolicy:'creatorOnly'};
 const activity={id:'a',groupId:'g',title:'巴黎',participantIds:['owner','member'],auditHistory:[],memberReviewIds:[]};
@@ -10,7 +10,7 @@ const users={owner:{id:'owner',nickname:'Cayden'},member:{id:'member',nickname:'
 
 afterEach(()=>cleanup());
 
-describe('2.3 clarity UI',()=>{
+describe('2.4 clarity UI',()=>{
   it('新增支出先顯示基本操作，進階功能收在更多記帳方式',()=>{
     render(<ExpenseForm activity={activity} users={users} actorId="owner" onClose={vi.fn()} onSave={vi.fn()} onDraft={vi.fn()}/>);
     expect(screen.getByText('誰付的？')).toBeInTheDocument();
@@ -24,6 +24,14 @@ describe('2.3 clarity UI',()=>{
     expect(screen.getByText('誰可以邀請朋友')).toBeInTheDocument();
     expect(screen.getByText('誰可以修改支出')).toBeInTheDocument();
     expect(screen.getByText('永久刪除群組')).toBeInTheDocument();
+  });
+
+  it('活動成員待檢查名單不會和目前成員重複',()=>{
+    const reviewActivity={...activity,memberReviewIds:['member']};
+    render(<ActivityMembers activity={reviewActivity} group={group} nameFor={(id)=>users[id].nickname} canManage={true} onBack={vi.fn()} onAdd={vi.fn()} onAddMany={vi.fn()} onRemove={vi.fn()} onReview={vi.fn()}/>);
+    expect(screen.getByText('待重新檢查')).toBeInTheDocument();
+    expect(screen.getAllByText('小安')).toHaveLength(1);
+    expect(screen.getByText('其他成員')).toBeInTheDocument();
   });
 
   it('一般成員不會看到群主專屬永久刪除操作',()=>{
