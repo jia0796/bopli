@@ -84,6 +84,25 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await expect(page.getByText('小安')).toBeVisible();
   });
 
+  test('首頁待處理卡直接進結算，活動可一鍵開啟成員管理', async ({ page }) => {
+    await onboard(page);
+    await createGroup(page, '捷徑測試');
+    await addTestMembers(page, ['小安']);
+    await createActivity(page, '捷徑活動');
+    await addSimpleExpense(page, '咖啡', 100);
+
+    await page.getByRole('button', { name: '活動成員' }).click();
+    await expect(page.getByRole('heading', { name: '活動成員' })).toBeVisible();
+    await page.getByRole('button', { name: '活動設定' }).click();
+    await page.getByRole('button', { name: /活動/ }).first().click();
+
+    await goHomeFromActivity(page);
+    await addSwitchableIdentityAndSwitch(page, '小安');
+    await page.locator('.action-card').filter({hasText:'捷徑活動'}).click();
+    await expect(page.getByText('你要付')).toBeVisible();
+    await expect(page.getByRole('button', { name: '結算', exact: true })).toHaveClass(/selected/);
+  });
+
   test('付款人記錄付款後，收款人可切換身分確認並完成結清', async ({ page }) => {
     await onboard(page);
     await createGroup(page, '付款旅行');
