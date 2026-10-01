@@ -136,3 +136,43 @@ test('DIAGNOSTIC: 自己還款給自己應被拒絕', () => {
     /還款|自己|相同|合法/
   );
 });
+
+
+test('STRESS 100 seeds × 1000筆：隨機帳本持續平衡', () => {
+  for(let seed=1000;seed<1100;seed++){
+    const rand=rng(seed);
+    const ids=Array.from({length:25},(_,i)=>`S${i}`);
+    const expenses=[];
+    for(let i=0;i<1000;i++){
+      const count=1+Math.floor(rand()*ids.length);
+      const participants=[...ids].sort(()=>rand()-0.5).slice(0,count);
+      expenses.push(makeExpense(`${seed}-${i}`,participants,rand,i));
+    }
+    const balances=calculateBalances(ids,expenses);
+    assert.equal(sum(balances),0,`seed ${seed}`);
+    suggestTransfers(balances);
+  }
+});
+
+test('DIAGNOSTIC: NaN confirmed settlement 應被拒絕', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:NaN,status:'confirmed'}]),/還款|金額|合法/);
+});
+
+test('DIAGNOSTIC: Infinity confirmed settlement 應被拒絕', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:Infinity,status:'confirmed'}]),/還款|金額|合法/);
+});
+
+test('DIAGNOSTIC: 超額還款不應把債權債務反轉', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  const balances=calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:60,status:'confirmed'}]);
+  assert.deepEqual(balances,{a:0,b:0});
+});
+
+test('DIAGNOSTIC: 重複 settlement id 不應被重複計算', () => {
+  const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
+  const same={id:'s1',fromUid:'b',toUid:'a',amount:25,status:'confirmed'};
+  const balances=calculateBalances(['a','b'],[expense],[same,{...same}]);
+  assert.deepEqual(balances,{a:25,b:-25});
+});
