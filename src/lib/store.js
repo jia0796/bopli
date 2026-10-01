@@ -52,6 +52,7 @@ function isUsableStore(item) {
 
 export function migrateStore(item) {
   if (!isUsableStore(item)) return null;
+  if (Number.isInteger(item.version) && item.version > STORE_SCHEMA_VERSION) return item;
   return {
     ...freshStore(),
     ...item,
@@ -68,25 +69,52 @@ export function migrateStore(item) {
   };
 }
 
-export function loadStore() {
+function readStoreKey(key) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
   try {
-    const current = migrateStore(JSON.parse(localStorage.getItem(STORAGE_KEY)));
-    if (current) return current;
+    return migrateStore(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
 
-    // 2.3 never deletes prior-version data. It copies the newest usable legacy store
-    // into the 2.3 schema, leaving the original key untouched for rollback/testing.
-    for (const key of LEGACY_STORAGE_KEYS) {
-      const migrated = migrateStore(JSON.parse(localStorage.getItem(key)));
-      if (!migrated) continue;
+export function loadStore() {
+  const current = readStoreKey(STORAGE_KEY);
+  if (current) return current;
+
+  // 2.3 never deletes prior-version data. A corrupt/missing 2.3 store falls back
+  // key-by-key to the newest usable legacy store, leaving every legacy key untouched.
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const migrated = readStoreKey(key);
+    if (!migrated) continue;
+    try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      return migrated;
+    } catch {
+      // The migrated data is still usable in-memory even when persistence is full/unavailable.
     }
-  } catch { /* Corrupted local prototype data should not crash the UI. */ }
+    return migrated;
+  }
   return freshStore();
 }
 
 export function saveStore(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (Number.isInteger(data?.version) && data.version > STORE_SCHEMA_VERSION) {
+    throw new Error(`資料版本 ${data.version} 比目前支援的 ${STORE_SCHEMA_VERSION} 更新，已停止覆寫以保護資料。`);
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return { ok: true };
+  } catch (error) {
+    const quota = error?.name === 'QuotaExceededError' || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+    const message = quota
+      ? '本機儲存空間已滿，本次變更尚未安全寫入。'
+      : '本機資料儲存失敗，本次變更可能尚未安全寫入。';
+    const wrapped = new Error(message);
+    wrapped.cause = error;
+    wrapped.code = quota ? 'STORAGE_QUOTA_EXCEEDED' : 'STORAGE_WRITE_FAILED';
+    throw wrapped;
+  }
 }
 
 export function createGuestStore(accountName, withDemo = false) {
