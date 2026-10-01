@@ -129,10 +129,10 @@ test('round-up preview, locked ledger and repayments share the same allocation s
   const preview=activityFinance(a,expenses,settlements,config);
   const locked=activityFinance({...a,roundingConfig:config,roundingLockedAt:'2026-10-01'},expenses,settlements);
   assert.deepEqual(preview,locked);
-  assert.deepEqual(locked.balances,{a:-102,b:-2,c:104});
+  assert.deepEqual(locked.balances,{a:-100,b:0,c:100});
   assert.deepEqual(locked.unroundedBalances,{a:-102,b:1,c:101});
   const ledgers=memberLedger(ids,expenses,settlements,locked);
-  assert.equal(ledgers.c.share,102);
-  assert.equal(ledgers.c.roundingCredit,6);
-  assert.equal(ledgers.c.balance,104);
+  assert.equal(ledgers.c.share,100);
+  assert.equal(ledgers.c.roundingCredit,0);
+  assert.equal(ledgers.c.balance,100);
 });

@@ -45,6 +45,7 @@ export default function MemberLedger({ participantIds, users, actorId, expenses,
       {expanded&&<div className="ledger-expanded">
         <MoneyRow label="實際墊付" value={row.advanced} emphasized/>
         <MoneyRow label="應分攤" value={row.share}/>
+        {row.roundingShareAdjustment!==0&&<MoneyRow label="其中：活動累計尾差調整" value={row.roundingShareAdjustment}/>}
         {row.roundingCredit>0&&<MoneyRow label="尾差增加應收" value={row.roundingCredit}/>}
         <MoneyRow label="已確認付給別人" value={row.repaid}/>
         <MoneyRow label="已確認收到還款" value={row.received}/>

@@ -90,6 +90,7 @@ export function memberLedger(participantIds, expenses, settlements = [], { balan
   const expected = balances || calculateBalances(ids, expenses, settlements);
   for (const uid of Object.keys(ledgers)) {
     const member = ledgers[uid];
+    member.roundingShareAdjustment = shares && Object.hasOwn(shares, uid) ? shares[uid] - member.share : 0;
     if (shares && Object.hasOwn(shares, uid)) member.share = shares[uid];
     member.advanced = member.paid - member.changeReceived;
     member.roundingCredit = poolAllocations[uid] || 0;
