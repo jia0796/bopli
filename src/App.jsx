@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive, ArrowLeft, ArrowRight, ArrowUp, Bell, Check, CheckCircle2, ChevronDown, ChevronRight,
   CircleAlert, Copy, Crown, History, Info, Link2, LockKeyhole, LogOut, MoreHorizontal,
@@ -347,6 +347,12 @@ export default function App() {
   const [navigationOrigin,setNavigationOrigin]=useState(null);
   const [storageError,setStorageError]=useState('');
   const tabScrollPositions=useRef({expenses:0,ledger:0,settlements:0});
+  const tabScrollRestore=useRef(null);
+  useLayoutEffect(()=>{
+    if(tabScrollRestore.current===null)return;
+    window.scrollTo({top:tabScrollRestore.current,behavior:'instant'});
+    tabScrollRestore.current=null;
+  },[tab]);
 
   useStorePersistence(data,{delay:300,onError:setStorageError});
   useModalViewport();
@@ -394,8 +400,8 @@ export default function App() {
     }
     tabScrollPositions.current[tab]=window.scrollY;
     const target=tabScrollPositions.current[nextTab]||0;
+    tabScrollRestore.current=target;
     setTab(nextTab);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:target,behavior:'instant'})));
   }
 
   function financesFor(a) {

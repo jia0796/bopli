@@ -557,3 +557,15 @@ npm run build
 - `project.md`
 
 `project.md` 作為快速理解整個 Bopli 專案的入口文件。
+
+## 19. 2.4 接手補強
+
+共用活動帳務與狀態入口：src/lib/activityFinance.js。
+
+pending / disputed 皆保留已付款額；只有 confirmed 改變正式餘額。爭議款處理後重新送出同一紀錄，不另建一筆付款。
+
+最終尾差先套用，再驗證還款。首頁／活動卡／支出／結算／成員帳目及刪除保護沿用同一份結果，避免各頁自行判斷已結清。
+
+src/lib/useModalViewport.js 共用 input dialog 可視範圍與背景捲動保護；src/lib/expenseHistory.js 提供白話欄位差異。
+
+部署繼續使用既有 .github/workflows/deploy.yml，新增部署後正式 Pages mobile smoke 驗證。不得以 build 成功代替實際正式網址驗證。

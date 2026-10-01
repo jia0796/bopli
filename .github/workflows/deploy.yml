@@ -31,7 +31,7 @@ jobs:
           node-version: lts/*
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
         run: npm test
@@ -50,3 +50,14 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Install deployed-site smoke test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+
+      - name: Install smoke test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify deployed Pages on mobile
+        env:
+          BOPLI_PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node scripts/smoke-pages.mjs

@@ -91,3 +91,15 @@
 - Google Authentication 仍為原型狀態。
 - 邀請連結尚未正式後端化。
 - 不同瀏覽器／裝置資料彼此獨立。
+
+## 12. 2.4 回歸驗證
+
+新增 src/lib/activityFinance.test.js、src/components/SettlementState.test.jsx 與 e2e/mobile-regression-2.4.spec.js。
+
+覆蓋全域狀態、部分付款 300 / 剩餘 700、手動額度消耗、pending / disputed 預留、重新送出同一筆爭議款、確認順序、尾差／個人帳目一致性、歷史退出成員與尾差後刪除。
+
+Mobile journeys 同時驗證群主／副群主可調整剩餘路線、一般成員不可調整、成員待檢查不重複、直接返回活動、每個頁籤保留捲動位置、同頁籤二次點擊回頂端、三個品牌 Header 幾何一致、清除所有舊鍵且重新整理保留新資料。
+
+鍵盤自動測試以縮小 visualViewport 模擬鍵盤佔用空間。真實 iOS／Android 鍵盤與不同輸入法仍應在實機抽查。
+
+正式 Pages 部署後會執行 scripts/smoke-pages.mjs，在全新 Pixel 7 browser context 上驗證 HTTP 成功、2.4 版本、記帳／結算、無 JS page error 與無水平溢出。
