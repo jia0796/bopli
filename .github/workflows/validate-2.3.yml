@@ -1,0 +1,28 @@
+name: Validate bopli_test.2.3
+
+on:
+  push:
+    branches: [bopli_test.2.3]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm install
+      - name: Run domain and UI tests
+        run: npm test
+      - name: Build
+        run: npm run build
