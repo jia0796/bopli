@@ -53,6 +53,13 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: '建立活動' }).last().click();
     await expect(page.getByText('還沒有支出')).toBeVisible();
 
+    // 先建立一筆舊支出，確保新成員加入時需要明確決定是否影響過去帳目。
+    await page.getByRole('button', { name: /記一筆/ }).click();
+    await page.getByLabel('支出名稱').fill('加入前晚餐');
+    await page.locator('.simple-payment-block input[inputmode="numeric"]').fill('300');
+    await page.getByRole('button', { name: '儲存支出' }).click();
+    await expect(page.getByText('加入前晚餐')).toBeVisible();
+
     // 回群組新增成員；既有活動不應自動加入。
     await page.getByRole('button', { name: '返回群組' }).click();
     await page.getByRole('button', { name: '群組設定' }).click();
