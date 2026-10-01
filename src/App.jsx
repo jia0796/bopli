@@ -25,6 +25,7 @@ import { applyRoundingToBalances, buildRoundingModel } from './lib/rounding.js';
 import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
 import { useStorePersistence } from './lib/useStorePersistence.js';
 import { buildStoreIndexes, itemsFor } from './lib/selectors.js';
+import { activityDeletionStatus, deleteActivityCascade, deleteGroupCascade, groupDeletionStatus } from './lib/lifecycle.js';
 
 const formattedTime = (date) => date ? new Date(date).toLocaleString('zh-TW', {year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 const initials = (name) => (name || '?').slice(0, 1);
@@ -388,6 +389,36 @@ export default function App() {
     setModal(null);notify('支出已刪除，活動修改紀錄已保留。');
   }
 
+  function requestDeleteActivity(){
+    const status=activityDeletionStatus(group,activity,data,actorId);
+    if(!status.allowed)return notify(status.reason);
+    setModal({kind:'confirmDeleteActivity',activityId:activity.id,counts:status.counts});
+  }
+  function confirmDeleteActivity(targetId){
+    const target=data.activities.find((a)=>a.id===targetId);
+    const parent=data.groups.find((g)=>g.id===target?.groupId);
+    const status=activityDeletionStatus(parent,target,data,actorId);
+    if(!status.allowed){setModal(null);return notify(status.reason);}
+    const parentId=target.groupId;
+    setData((prev)=>deleteActivityCascade(prev,targetId));
+    setModal(null);setActivityId(null);setGroupId(parentId);setScreen('group');setTab('expenses');
+    notify('活動已永久刪除。');
+  }
+  function requestDeleteGroup(targetGroup=group){
+    const status=groupDeletionStatus(targetGroup,data,actorId);
+    if(!status.allowed)return notify(status.reason);
+    setGroupId(targetGroup.id);
+    setModal({kind:'confirmDeleteGroup',groupId:targetGroup.id,counts:status.counts});
+  }
+  function confirmDeleteGroup(targetId){
+    const target=data.groups.find((g)=>g.id===targetId);
+    const status=groupDeletionStatus(target,data,actorId);
+    if(!status.allowed){setModal(null);return notify(status.reason);}
+    setData((prev)=>deleteGroupCascade(prev,targetId));
+    setModal(null);setGroupId(null);setActivityId(null);setScreen('home');setTab('expenses');
+    notify('群組已永久刪除。');
+  }
+
   function requestPayment(transfer,amount,method,meta){setData((prev)=>({...prev,settlements:[...prev.settlements,{id:makeId(),activityId,fromUid:actorId,toUid:transfer.toUid,amount,method,methodOther:meta.other,note:meta.note,paidDate:meta.date,status:'pending',createdBy:actorId,createdAt:now(),events:[{type:'pending',by:actorId,at:now()}]}]}));setModal(null);notify(`已記錄付款，等待${nameFor(transfer.toUid)}確認。`);}
   function confirmPayment(s){if(s.toUid!==actorId||s.status!=='pending')return;setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id?{...x,status:'confirmed',confirmedAt:now(),events:[...x.events,{type:'confirmed',by:actorId,at:now()}]}:x)}));notify('已確認收到款項。');}
   function disputePayment(s,reason,note){setData((prev)=>({...prev,settlements:prev.settlements.map((x)=>x.id===s.id?{...x,status:'disputed',updatedAt:now(),issue:{reason,note},events:[...x.events,{type:'disputed',by:actorId,at:now(),reason,note}]}:x)}));setModal(null);notify('已回報問題，等待付款人處理。');}
@@ -488,17 +519,17 @@ export default function App() {
 
       {screen==='profile'&&<ProfileScreen actor={actor} account={data.account} groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&!g.archived)} nameFor={(id,g)=>nameFor(id,g)} actorId={actorId} primaryUserId={primaryUserId} onBack={goHome} onEditAccountName={()=>setModal({kind:'accountName'})} onArchived={()=>setScreen('archivedGroups')} onConnectGoogle={()=>{setData((prev)=>({...prev,account:{...prev.account,googleLinked:true}}));setSuccessFlash('Google 帳號已連結');}} onOpenGroupNickname={(gid)=>{setGroupId(gid);setScreen('memberDetail');setModal({kind:'memberDetailTarget',targetUid:actorId});}} onSwitchIdentity={()=>setModal({kind:'switchIdentity'})}/>} 
 
-      {screen==='archivedGroups'&&<ArchivedGroups groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&g.archived)} actorId={actorId} onBack={()=>setScreen('profile')} onRestore={(gid)=>{setData((prev)=>({...prev,groups:prev.groups.map((g)=>g.id===gid?{...g,archived:false,lastUsedAt:now()}:g)}));notify('群組已恢復。');}}/>}
+      {screen==='archivedGroups'&&<ArchivedGroups groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&g.archived)} actorId={actorId} onBack={()=>setScreen('profile')} onRestore={(gid)=>{setData((prev)=>({...prev,groups:prev.groups.map((g)=>g.id===gid?{...g,archived:false,lastUsedAt:now()}:g)}));notify('群組已恢復。');}} onDelete={(gid)=>{const target=data.groups.find((g)=>g.id===gid);if(target)requestDeleteGroup(target);}}/>}
 
       {screen==='group'&&group&&<GroupScreen group={group} activities={groupActivities} data={data} actorId={actorId} nameFor={nameFor} financesFor={financesFor} canInvite={canInvite} historicalOnly={!group.memberIds.includes(actorId)} onBack={goHome} onInvite={()=>setModal({kind:'invite'})} onSettings={()=>setScreen('groupSettings')} onOpenActivity={(id)=>goActivity(id)} onCreateActivity={()=>setModal({kind:'createActivity'})}/>} 
 
-      {screen==='groupSettings'&&group&&<GroupSettings group={group} actorId={actorId} nameFor={nameFor} onBack={()=>setScreen('group')} onToggleInvites={toggleInvites} onToggleEdit={toggleEditPolicy} onMembers={()=>setScreen('groupMembers')} onArchive={()=>setModal({kind:'confirmArchive'})}/>} 
+      {screen==='groupSettings'&&group&&<GroupSettings group={group} actorId={actorId} nameFor={nameFor} onBack={()=>setScreen('group')} onToggleInvites={toggleInvites} onToggleEdit={toggleEditPolicy} onMembers={()=>setScreen('groupMembers')} onArchive={()=>setModal({kind:'confirmArchive'})} onDelete={()=>requestDeleteGroup(group)}/>} 
 
       {screen==='groupMembers'&&group&&<GroupMembers group={group} actorId={actorId} nameFor={nameFor} canAddTest={canInvite} onBack={()=>setScreen('groupSettings')} onOpen={(uid)=>{setModal({kind:'memberDetailTarget',targetUid:uid});setScreen('memberDetail');}} onRemove={removeGroupMember} onAddTest={()=>setModal({kind:'testMembers'})} onExit={exitGroup}/>} 
 
       {screen==='memberDetail'&&group&&<MemberDetail group={group} targetUid={modal?.targetUid||modal?.kind==='memberDetailTarget'&&modal.targetUid||actorId} actorId={actorId} nameFor={nameFor} activities={data.activities.filter((a)=>a.groupId===group.id)} isDeputy={(uid)=>isDeputy(group,uid)} onBack={()=>setScreen('groupMembers')} onEditNickname={()=>setModal({kind:'nickname'})} onDeputy={promoteDeputy}/>} 
 
-      {screen==='activitySettings'&&activity&&group&&<ActivitySettings activity={activity} group={group} canManage={canManage} nameFor={nameFor} onBack={()=>setScreen('activity')} onMembers={()=>setScreen('activityMembers')}/>} 
+      {screen==='activitySettings'&&activity&&group&&<ActivitySettings activity={activity} group={group} canManage={canManage} canDelete={isOwner(group,actorId)} nameFor={nameFor} onBack={()=>setScreen('activity')} onMembers={()=>setScreen('activityMembers')} onDelete={requestDeleteActivity}/>} 
 
       {screen==='activityMembers'&&activity&&group&&<ActivityMembers activity={activity} group={group} nameFor={nameFor} canManage={canManage} onBack={()=>setScreen('activitySettings')} onAdd={(uid)=>{if(activityExpenses.length)setModal({kind:'addActivityMemberChoice',targetUid:uid});else addActivityMember(uid,false);}} onAddMany={(uids)=>setModal({kind:'batchAddActivityMembers',memberIds:uids})} onRemove={removeActivityMember} onReview={(uid)=>setModal({kind:'reviewMember',targetUid:uid})}/>} 
 
@@ -528,6 +559,8 @@ export default function App() {
     {modal?.kind==='confirmRemoveGroupMember'&&<ConfirmModal danger title={`移除 ${nameFor(modal.targetUid)}？`} confirmText="確認移除" onClose={()=>setModal(null)} onConfirm={()=>confirmRemoveGroupMember(modal.targetUid)}><p>移除後，對方不再參與新的群組內容與共同支出；既有分攤、墊付、付款與還款紀錄仍完整保留。</p>{groupHasOutstanding(modal.targetUid)&&<p className="field-hint"><CircleAlert size={15}/>此成員仍有待結算帳目。移除後仍可從歷史帳務完成結算。</p>}</ConfirmModal>}
     {modal?.kind==='confirmExitGroup'&&<ConfirmModal danger title={`確定要退出「${group?.name}」嗎？`} confirmText="確定退出" onClose={()=>setModal(null)} onConfirm={confirmExit}><p>退出後，你不再參與新的群組內容與共同支出；過去與你有關的帳目與還款權限仍保留到完成結算。</p></ConfirmModal>}
     {modal?.kind==='confirmArchive'&&<ConfirmModal title={`封存「${group?.name}」？`} confirmText="封存群組" onClose={()=>setModal(null)} onConfirm={()=>{updateGroup({...group,archived:true});setModal(null);goHome();notify('群組已封存，可於日後版本恢復。');}}><p>封存後不會出現在首頁，歷史帳目仍完整保留。</p></ConfirmModal>}
+    {modal?.kind==='confirmDeleteActivity'&&(()=>{const target=data.activities.find((a)=>a.id===modal.activityId);return target?<ConfirmModal danger title={`永久刪除「${target.title}」？`} confirmText="永久刪除活動" cancelText="取消" onClose={()=>setModal(null)} onConfirm={()=>confirmDeleteActivity(target.id)}><p>這個動作無法復原，會永久刪除此活動及其支出、還款與草稿資料。</p><p className="muted small">目前包含 {modal.counts?.expenses||0} 筆支出、{modal.counts?.settlements||0} 筆還款紀錄、{modal.counts?.drafts||0} 份草稿。</p></ConfirmModal>:null;})()}
+    {modal?.kind==='confirmDeleteGroup'&&(()=>{const target=data.groups.find((g)=>g.id===modal.groupId);const activityCount=data.activities.filter((a)=>a.groupId===modal.groupId).length;return target?<ConfirmModal danger title={`永久刪除「${target.name}」？`} confirmText="永久刪除群組" cancelText="取消" onClose={()=>setModal(null)} onConfirm={()=>confirmDeleteGroup(target.id)}><p>這個動作無法復原，會永久刪除群組內所有活動、支出、還款與草稿資料。</p><p className="muted small">目前群組共有 {activityCount} 個活動。成員帳號本身不會被刪除。</p></ConfirmModal>:null;})()}
     {modal?.kind==='batchAddActivityMembers'&&activity&&<BatchAddMembersModal memberIds={modal.memberIds||[]} nameFor={nameFor} hasExpenses={activityExpenses.length>0} hasRepayments={activitySettlements.length>0} onClose={()=>setModal(null)} onSubmit={(decisions)=>addActivityMembersBatch(modal.memberIds||[],decisions)}/>} 
     {modal?.kind==='addActivityMemberChoice'&&<ConfirmModal title={`將 ${nameFor(modal.targetUid)} 加入活動`} confirmText={`將共同支出改為 ${activity.participantIds.length+1} 人分攤`} cancelText="稍後更改，維持原狀" onClose={()=>addActivityMember(modal.targetUid,false)} onConfirm={()=>addActivityMember(modal.targetUid,true)}><p>這個活動目前已有 {activityExpenses.length} 筆支出。只有「全活動成員共同平均」的既有支出會安全重新計算；特殊分攤不會被擅自改動。</p>{activitySettlements.length>0&&<p className="field-hint"><LockKeyhole size={15}/>活動已開始結算，現在只能維持原狀，稍後再重新檢查。</p>}</ConfirmModal>}
     {modal?.kind==='reviewMember'&&<ConfirmModal title={`重新檢查 ${nameFor(modal.targetUid)}`} confirmText="套用至既有共同支出" cancelText="維持原狀，不再提醒" onClose={()=>{resolveMemberReview(modal.targetUid,false);setModal(null);}} onConfirm={()=>{resolveMemberReview(modal.targetUid,true);setModal(null);}}><p>如果這位成員原本就應該參與前面的共同支出，可以重新計算；如果是中途加入，維持原狀即可。</p></ConfirmModal>}
