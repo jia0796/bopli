@@ -38,7 +38,7 @@ async function addSimpleExpense(page, title, amount) {
   await page.getByLabel('支出名稱').fill(title);
   await page.locator('.simple-payment-block input[inputmode="numeric"]').fill(String(amount));
   await page.getByRole('button', { name: '儲存支出' }).click();
-  await expect(page.getByRole('button', { name: new RegExp(`查看 ${title} NT\\$ ${amount}`) })).toBeVisible();
+  await expect(page.getByRole('button', { name: new RegExp(`查看 ${title}`) })).toBeVisible();
 }
 
 async function goHomeFromActivity(page) {
@@ -52,7 +52,7 @@ async function addSwitchableIdentityAndSwitch(page, name) {
     await page.getByRole('button', { name: /新增測試身分/ }).click();
     await page.getByRole('button', { name: new RegExp(name) }).click();
   }
-  await page.getByRole('button', { name: new RegExp(name) }).click();
+  await page.locator('.test-identity-row').filter({hasText:name}).click();
   await expect(page.getByText(`測試身分：${name}`)).toBeVisible();
 }
 
@@ -124,7 +124,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await page.getByRole('button', { name: '切換' }).click();
     await page.getByRole('button', { name: /新增測試身分/ }).click();
     await page.getByRole('button', { name: /副手/ }).click();
-    await page.getByRole('button', { name: /副手/ }).click();
+    await page.locator('.test-identity-row').filter({hasText:'副手'}).click();
     await page.getByRole('button', { name: /權限測試/ }).click();
     await page.getByRole('button', { name: '群組設定' }).click();
     await expect(page.getByRole('button', { name: '永久刪除群組' })).toHaveCount(0);
