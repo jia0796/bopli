@@ -164,17 +164,18 @@ test('DIAGNOSTIC: Infinity confirmed settlement 應被拒絕', () => {
   assert.throws(()=>calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:Infinity,status:'confirmed'}]),/還款|金額|合法/);
 });
 
-test('DIAGNOSTIC: 超額還款不應把債權債務反轉', () => {
+test('DIAGNOSTIC: 超額還款應直接拒絕，不可把債權債務反轉', () => {
   const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
-  const balances=calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:60,status:'confirmed'}]);
-  assert.deepEqual(balances,{a:0,b:0});
+  assert.throws(
+    ()=>calculateBalances(['a','b'],[expense],[{fromUid:'b',toUid:'a',amount:60,status:'confirmed'}]),
+    /超過|還款/
+  );
 });
 
-test('DIAGNOSTIC: 重複 settlement id 不應被重複計算', () => {
+test('DIAGNOSTIC: 重複 settlement id 應直接拒絕', () => {
   const expense={id:'e',amount:100,paidBy:'a',allocations:{a:50,b:50}};
   const same={id:'s1',fromUid:'b',toUid:'a',amount:25,status:'confirmed'};
-  const balances=calculateBalances(['a','b'],[expense],[same,{...same}]);
-  assert.deepEqual(balances,{a:25,b:-25});
+  assert.throws(()=>calculateBalances(['a','b'],[expense],[same,{...same}]),/重複|還款/);
 });
 
 
