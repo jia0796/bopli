@@ -24,6 +24,7 @@ import {
 import { applyRoundingToBalances, buildRoundingModel } from './lib/rounding.js';
 import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
 import { useStorePersistence } from './lib/useStorePersistence.js';
+import { buildStoreIndexes, itemsFor } from './lib/selectors.js';
 
 const formattedTime = (date) => date ? new Date(date).toLocaleString('zh-TW', {year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 const initials = (name) => (name || '?').slice(0, 1);
@@ -251,11 +252,13 @@ export default function App() {
   const actorId=data.currentUserId;
   const primaryUserId=data.account?.primaryUserId || actorId;
   const actor=data.users[actorId];
-  const group=data.groups.find((g)=>g.id===groupId);
-  const activity=data.activities.find((a)=>a.id===activityId && a.groupId===groupId);
-  const groupActivities=data.activities.filter((a)=>a.groupId===groupId && a.status!=='archived' && (group?.memberIds.includes(actorId) || a.participantIds.includes(actorId) || data.expenses.some((e)=>e.activityId===a.id&&((e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId)) || data.settlements.some((x)=>x.activityId===a.id&&(x.fromUid===actorId||x.toUid===actorId))));
-  const activityExpenses=data.expenses.filter((e)=>e.activityId===activityId);
-  const activitySettlements=data.settlements.filter((s)=>s.activityId===activityId);
+  const indexes=useMemo(()=>buildStoreIndexes(data),[data.groups,data.activities,data.expenses,data.settlements]);
+  const group=indexes.groupById.get(groupId);
+  const candidateActivity=indexes.activityById.get(activityId);
+  const activity=candidateActivity?.groupId===groupId?candidateActivity:null;
+  const activityExpenses=itemsFor(indexes.expensesByActivityId,activityId);
+  const activitySettlements=itemsFor(indexes.settlementsByActivityId,activityId);
+  const groupActivities=itemsFor(indexes.activitiesByGroupId,groupId).filter((a)=>a.status!=='archived' && (group?.memberIds.includes(actorId) || a.participantIds.includes(actorId) || itemsFor(indexes.expensesByActivityId,a.id).some((e)=>(e.allocations?.[actorId]||0)>0||(e.payments||[{uid:e.paidBy,amount:e.amount}]).some((p)=>p.uid===actorId)||e.change?.receiverUid===actorId) || itemsFor(indexes.settlementsByActivityId,a.id).some((x)=>x.fromUid===actorId||x.toUid===actorId)));
 
   function accountName(){ return actor?.accountName || actor?.nickname || ''; }
   function nameFor(uid,g=group){ return g?.nicknames?.[uid] || data.users[uid]?.nickname || '未知成員'; }
@@ -268,10 +271,11 @@ export default function App() {
 
   function financesFor(a) {
     if(!a)return {balances:{},suggested:[],projected:{},error:''};
-    const expenses=data.expenses.filter((e)=>e.activityId===a.id);const settlements=data.settlements.filter((s)=>s.activityId===a.id);
+    const expenses=itemsFor(indexes.expensesByActivityId,a.id);
+    const settlements=itemsFor(indexes.settlementsByActivityId,a.id);
     try{const balances=calculateBalances(a.participantIds,expenses,settlements);const projected=calculateBalances(a.participantIds,expenses,settlements,true);return{balances,suggested:suggestTransfers(projected),projected,error:''};}catch(err){return{balances:{},suggested:[],projected:{},error:err.message};}
   }
-  const finances=useMemo(()=>financesFor(activity),[activity,data.expenses,data.settlements]);
+  const finances=useMemo(()=>financesFor(activity),[activity,indexes]);
   const roundingModel=useMemo(()=>activity?buildRoundingModel(activity.participantIds,activityExpenses):null,[activity,activityExpenses]);
   const finalFinance=useMemo(()=>{
     if(!activity||!roundingModel)return{balances:finances.balances,projectedBalances:finances.projected,transfers:finances.suggested,extraPool:0};
@@ -292,7 +296,7 @@ export default function App() {
   const homeActions=useMemo(()=>{
     if(!actorId)return[];
     const rows=[];
-    for(const a of data.activities){if(a.status==='archived')continue;const g=data.groups.find((x)=>x.id===a.groupId);if(!g||g.archived)continue;const f=financesFor(a);if(!a.participantIds.includes(actorId)&&!(actorId in (f.balances||{})))continue;const pending=data.settlements.filter((s)=>s.activityId===a.id&&s.status==='pending'&&s.toUid===actorId);const disputed=data.settlements.filter((s)=>s.activityId===a.id&&s.status==='disputed'&&s.fromUid===actorId);const bal=f.projected[actorId]||0;let priority=99;let label='';let amount=0;if(pending.length){priority=0;label='待我確認';amount=pending.reduce((s,x)=>s+x.amount,0);}else if(disputed.length){priority=0;label='還款需要處理';amount=disputed.reduce((s,x)=>s+x.amount,0);}else if(bal<0){priority=1;label='我要付';amount=Math.abs(bal);}else if(bal>0){priority=2;label='我要收';amount=bal;}if(priority<99)rows.push({activity:a,group:g,priority,label,amount});}
+    for(const a of data.activities){if(a.status==='archived')continue;const g=indexes.groupById.get(a.groupId);if(!g||g.archived)continue;const f=financesFor(a);if(!a.participantIds.includes(actorId)&&!(actorId in (f.balances||{})))continue;const activitySettlementRows=itemsFor(indexes.settlementsByActivityId,a.id);const pending=activitySettlementRows.filter((s)=>s.status==='pending'&&s.toUid===actorId);const disputed=activitySettlementRows.filter((s)=>s.status==='disputed'&&s.fromUid===actorId);const bal=f.projected[actorId]||0;let priority=99;let label='';let amount=0;if(pending.length){priority=0;label='待我確認';amount=pending.reduce((s,x)=>s+x.amount,0);}else if(disputed.length){priority=0;label='還款需要處理';amount=disputed.reduce((s,x)=>s+x.amount,0);}else if(bal<0){priority=1;label='我要付';amount=Math.abs(bal);}else if(bal>0){priority=2;label='我要收';amount=bal;}if(priority<99)rows.push({activity:a,group:g,priority,label,amount});}
     return rows.sort((a,b)=>a.priority-b.priority || new Date(b.activity.createdAt)-new Date(a.activity.createdAt));
   },[data,actorId]);
 
@@ -300,10 +304,9 @@ export default function App() {
     const visible=data.groups.filter((g)=>{
       if(g.archived)return false;
       if(g.memberIds.includes(actorId))return true;
-      return data.activities.some((a)=>{
-        if(a.groupId!==g.id)return false;
+      return itemsFor(indexes.activitiesByGroupId,g.id).some((a)=>{
         const balance=financesFor(a).balances?.[actorId]||0;
-        const pending=data.settlements.some((x)=>x.activityId===a.id&&['pending','disputed'].includes(x.status)&&(x.fromUid===actorId||x.toUid===actorId));
+        const pending=itemsFor(indexes.settlementsByActivityId,a.id).some((x)=>['pending','disputed'].includes(x.status)&&(x.fromUid===actorId||x.toUid===actorId));
         return balance!==0||pending;
       });
     });
@@ -316,8 +319,8 @@ export default function App() {
 
   const notificationItems=useMemo(()=>{
     const items=[];
-    for(const s of data.settlements){const a=data.activities.find((x)=>x.id===s.activityId);const g=data.groups.find((x)=>x.id===a?.groupId);if(!a||!g)continue;if(s.status==='pending'&&s.toUid===actorId)items.push({key:`settle-${s.id}`,at:s.createdAt,title:`${nameFor(s.fromUid,g)} 已記錄還款 ${formatMoney(s.amount)}`,detail:'等待你確認是否收到款項',actionable:true,type:'payment',activityId:a.id,groupId:g.id,target:'settlement'});if(s.status==='disputed'&&s.fromUid===actorId)items.push({key:`dispute-${s.id}`,at:s.updatedAt||s.createdAt,title:'你的還款被回報有問題',detail:`${formatMoney(s.amount)} 需要重新確認`,actionable:true,type:'alert',activityId:a.id,groupId:g.id,target:'settlement'});}
-    for(const a of data.activities){const g=data.groups.find((x)=>x.id===a.groupId);if(!g)continue;for(const ev of a.auditHistory||[]){if(ev.notifyUids?.includes(actorId))items.push({key:`audit-${a.id}-${ev.id}`,at:ev.at,title:`${a.title} 已更新`,detail:ev.message,actionable:false,type:'change',activityId:a.id,groupId:g.id,target:'activityAudit'});}}
+    for(const s of data.settlements){const a=indexes.activityById.get(s.activityId);const g=indexes.groupById.get(a?.groupId);if(!a||!g)continue;if(s.status==='pending'&&s.toUid===actorId)items.push({key:`settle-${s.id}`,at:s.createdAt,title:`${nameFor(s.fromUid,g)} 已記錄還款 ${formatMoney(s.amount)}`,detail:'等待你確認是否收到款項',actionable:true,type:'payment',activityId:a.id,groupId:g.id,target:'settlement'});if(s.status==='disputed'&&s.fromUid===actorId)items.push({key:`dispute-${s.id}`,at:s.updatedAt||s.createdAt,title:'你的還款被回報有問題',detail:`${formatMoney(s.amount)} 需要重新確認`,actionable:true,type:'alert',activityId:a.id,groupId:g.id,target:'settlement'});}
+    for(const a of data.activities){const g=indexes.groupById.get(a.groupId);if(!g)continue;for(const ev of a.auditHistory||[]){if(ev.notifyUids?.includes(actorId))items.push({key:`audit-${a.id}-${ev.id}`,at:ev.at,title:`${a.title} 已更新`,detail:ev.message,actionable:false,type:'change',activityId:a.id,groupId:g.id,target:'activityAudit'});}}
     return items.filter((x)=>Date.now()-new Date(x.at).getTime()<=90*86400000 || x.actionable).sort((a,b)=>new Date(b.at)-new Date(a.at));
   },[data,actorId]);
   const actionableCount=notificationItems.filter((n)=>n.actionable).length;
