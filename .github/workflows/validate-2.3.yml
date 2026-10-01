@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -20,29 +20,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: lts/*
-      - name: Install dependencies
-        run: npm install
-      - name: Commit generated lockfile
-        if: github.event_name == 'push' && github.ref == 'refs/heads/bopli_test.2.3'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "bopli_test.2.3: lock dependency tree [skip ci]"
-            git push
-          fi
+      - name: Install locked dependencies
+        run: npm ci
       - name: Build
         run: npm run build
       - name: Run domain, stress, and UI tests
         run: npm test
       - name: Audit high and critical vulnerabilities
         run: npm audit --audit-level=high
-      - name: Upload generated lockfile
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-lock-2.3
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
