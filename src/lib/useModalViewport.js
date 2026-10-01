@@ -27,7 +27,7 @@ export function useModalViewport() {
         const height = viewport?.height || window.innerHeight;
         const rect = input.getBoundingClientRect();
         if (rect.top < top + 70 || rect.bottom > top + height - 85) {
-          input.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+          input.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
         }
       });
     };

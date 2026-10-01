@@ -45,6 +45,7 @@ export default function MemberLedger({ participantIds, users, actorId, expenses,
       {expanded&&<div className="ledger-expanded">
         <MoneyRow label="實際墊付" value={row.advanced} emphasized/>
         <MoneyRow label="應分攤" value={row.share}/>
+        {row.roundingCredit>0&&<MoneyRow label="尾差增加應收" value={row.roundingCredit}/>}
         <MoneyRow label="已確認付給別人" value={row.repaid}/>
         <MoneyRow label="已確認收到還款" value={row.received}/>
         {(row.pendingOut||row.pendingIn)?<div className="ledger-pending">待確認：付出 {money(row.pendingOut)} ／ 收取 {money(row.pendingIn)}。待確認金額不視為已結清。</div>:null}

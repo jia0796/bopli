@@ -25,6 +25,15 @@ describe('debounced store persistence', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('StrictMode effect replay does not overwrite the loaded store or a reset fixture', () => {
+    const spy=vi.spyOn(Storage.prototype,'setItem');
+    const {unmount}=renderHook(({data})=>useStorePersistence(data,{delay:300}),{initialProps:{data:store('a')},wrapper:({children})=><React.StrictMode>{children}</React.StrictMode>});
+    act(()=>vi.advanceTimersByTime(300));
+    act(()=>window.dispatchEvent(new Event('pagehide')));
+    unmount();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('rapid updates collapse into one write containing only the latest state', () => {
     const spy=vi.spyOn(Storage.prototype,'setItem');
     const {rerender}=renderHook(({data})=>useStorePersistence(data,{delay:300}),{initialProps:{data:store('a')}});

@@ -32,10 +32,11 @@ export function useStorePersistence(data, { delay = 300, onError } = {}) {
   }, []);
 
   useEffect(() => {
+    const changed = latestRef.current !== data;
     latestRef.current = data;
     // loadStore already provides the initial persisted state. Avoid immediately
     // rewriting the full store on mount; only persist actual subsequent changes.
-    if (!mountedRef.current) {
+    if (!mountedRef.current || !changed) {
       mountedRef.current = true;
       return undefined;
     }

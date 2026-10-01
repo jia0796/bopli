@@ -84,7 +84,8 @@ function BatchAddMembersModal({ memberIds, nameFor, hasExpenses, hasRepayments, 
 }
 
 function PaymentModal({ transfer, users, nameFor, onClose, onSubmit }) {
-  const [amount,setAmount]=useState(String(transfer.amount));
+  const maximum=Math.min(transfer.amount,1_000_000_000);
+  const [amount,setAmount]=useState(String(maximum));
   const [method,setMethod]=useState('transfer');
   const [other,setOther]=useState('');
   const [noteOpen,setNoteOpen]=useState(false);
@@ -92,7 +93,7 @@ function PaymentModal({ transfer, users, nameFor, onClose, onSubmit }) {
   const [dateOpen,setDateOpen]=useState(false);
   const [date,setDate]=useState(new Date().toISOString().slice(0,10));
   const [error,setError]=useState('');
-  function submit(e){e.preventDefault();const n=Number(amount);if(!/^\d+$/.test(amount)||n<1||n>transfer.amount)return setError(`請輸入 1～${transfer.amount} 元。`);if(method==='other'&&!other.trim())return setError('請填寫其他付款方式。');onSubmit(n,method,{other:other.trim(),note:note.trim(),date:dateOpen?date:null});}
+  function submit(e){e.preventDefault();const n=Number(amount);if(!/^\d+$/.test(amount)||n<1||n>maximum)return setError(`請輸入 1～${maximum} 元。`);if(method==='other'&&!other.trim())return setError('請填寫其他付款方式。');onSubmit(n,method,{other:other.trim(),note:note.trim(),date:dateOpen?date:null});}
   return <div className="modal-overlay"><section className="modal small-modal payment-modal"><div className="modal-top"><h2>記錄付款</h2><button className="icon-button" onClick={onClose}><X size={20}/></button></div><div className="payment-route"><PersonAvatar name={nameFor(transfer.fromUid)} small/><ArrowRight size={18}/><PersonAvatar name={nameFor(transfer.toUid)} small/></div><p className="center-note">{nameFor(transfer.fromUid)} → {nameFor(transfer.toUid)}</p><form className="form-stack" onSubmit={submit}><label className="field"><span>付款金額</span><div className="money-field"><span>NT$</span><input value={amount} inputMode="numeric" onChange={(e)=>setAmount(e.target.value)}/></div></label><div className="field"><span>付款方式</span><div className="payment-method-grid">{[['transfer','銀行轉帳'],['cash','現金'],['mobile','行動支付'],['other','其他']].map(([id,label])=><button type="button" key={id} className={method===id?'selected':''} onClick={()=>setMethod(id)}>{label}</button>)}</div></div>{method==='other'&&<label className="field"><span>其他方式</span><input value={other} onChange={(e)=>setOther(e.target.value)} placeholder="例如：代墊抵扣"/></label>}<button type="button" className="text-action-button" onClick={()=>setDateOpen((v)=>!v)}>修改日期</button>{dateOpen&&<label className="field"><span>付款日期</span><input type="date" value={date} onChange={(e)=>setDate(e.target.value)}/></label>}<button type="button" className="text-action-button" onClick={()=>setNoteOpen((v)=>!v)}>＋ 新增備註</button>{noteOpen&&<label className="field"><span>備註</span><input value={note} onChange={(e)=>setNote(e.target.value)} placeholder="選填"/></label>}{error&&<p className="form-error">{error}</p>}<button className="primary-button full" type="submit">記錄付款</button></form></section></div>;
 }
 
@@ -218,11 +219,11 @@ function SuccessFlash({ text }) {
   return <div className="success-flash"><div><CheckCircle2 size={34}/><strong>{text}</strong></div></div>;
 }
 
-function RoundingPanel({ activity, group, actorId, expenses, baseBalances, nameFor, onUpdateActivity }) {
+function RoundingPanel({ activity, group, actorId, expenses, baseBalances, repaymentsStarted=false, nameFor, onUpdateActivity }) {
   const model=useMemo(()=>buildRoundingModel(activity.participantIds,expenses),[activity.participantIds,expenses]);
   const config=activity.roundingConfig || {mode:'current',receiverMode:'random',randomTailUids:[],receiverOrder:[]};
   const canManage=canManageFinalRounding(group,actorId);
-  const locked=Boolean(activity.roundingLockedAt);
+  const locked=Boolean(activity.roundingLockedAt)||repaymentsStarted;
   const result=useMemo(()=>applyRoundingToBalances(baseBalances,model,config),[baseBalances,model,config]);
   const candidateSet=new Set(model.candidates);
   const affected=activity.participantIds.filter((id)=>(baseBalances[id]||0)!==(result.balances[id]||0));
@@ -542,7 +543,7 @@ export default function App() {
 
   function requestPayment(transfer,amount,method,meta){
     const current=mergeSettlementTransfers(finalFinance.transfers).find((t)=>t.fromUid===actorId&&t.toUid===transfer.toUid);
-    if(transfer.fromUid!==actorId||!current||!Number.isSafeInteger(amount)||amount<=0||amount>current.amount)return notify('付款金額超過目前可支付金額，請重新檢查。');
+    if(transfer.fromUid!==actorId||!current||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000||amount>current.amount)return notify('付款金額超過目前可支付金額，請重新檢查。');
     transfer=current;
     let left=amount;
     const manualConsumption=[];
@@ -817,7 +818,7 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
 
     {completedMine.length>0&&<details className="disclosure settlement-completed"><summary>查看已完成還款 {completedMine.length} 筆</summary>{[...completedMine].reverse().map((s)=><div className="history-line" key={s.id}>{nameFor(s.fromUid)} → {nameFor(s.toUid)} <strong>{formatMoney(s.amount)}</strong></div>)}</details>}
 
-    <details className="disclosure settlement-advanced"><summary>進階結算設定</summary><RoundingPanel activity={activity} group={group} actorId={actorId} expenses={expenses} baseBalances={baseBalances} nameFor={nameFor} onUpdateActivity={onUpdateActivity}/></details>
+    <details className="disclosure settlement-advanced"><summary>進階結算設定</summary><RoundingPanel activity={activity} group={group} actorId={actorId} expenses={expenses} baseBalances={finalFinance.unroundedBalances||baseBalances} repaymentsStarted={settlements.some(s=>['pending','confirmed','disputed'].includes(s.status))} nameFor={nameFor} onUpdateActivity={onUpdateActivity}/></details>
     <button className="outline-button full" type="button" onClick={onAll}>查看所有人的結算</button>
 
     {showPlanEditor&&<SettlementPlanModal balances={finalFinance.projectedBalances} currentRows={activity.settlementManualTransfers||[]} nameFor={nameFor} onClose={()=>setShowPlanEditor(false)} onSave={savePlan}/>}

@@ -14,12 +14,14 @@ function fixture(actor='debtor', {empty=false, review=false, large=false}={}) {
     settlements:[],drafts:[],notifications:[]};
 }
 async function seed(page,data) {
-  await page.goto('/');
-  await page.evaluate(({key,marker,data})=>{
+  const token='fixture-'+Date.now()+'-'+Math.random();
+  await page.addInitScript(({key,marker,data,token})=>{
+    if(sessionStorage.getItem(token))return;
+    sessionStorage.setItem(token,'1');
     localStorage.setItem(marker,'1');
     localStorage.setItem(key,JSON.stringify(data));
-  },{key,marker,data});
-  await page.reload();
+  },{key,marker,data,token});
+  await page.goto('/');
 }
 async function openActivity(page,tab='結算') {
   await page.locator('.group-card').filter({hasText:'回歸群組'}).click();

@@ -10,8 +10,13 @@ export function activityFinance(activity, expenses = [], settlements = []) {
   const rounded = applyRoundingToBalances(base, model, config);
   const balances = applyRepayments(rounded.balances, settlements);
   const projectedBalances = applyRepayments(rounded.balances, settlements, true);
+  const unroundedBalances = { ...base };
+  for (const s of settlements.filter(s => s.status === 'confirmed')) {
+    unroundedBalances[s.fromUid] += s.amount;
+    unroundedBalances[s.toUid] -= s.amount;
+  }
   const plan = buildSettlementPlan(projectedBalances, activity.settlementManualTransfers || [], { clamp: true });
-  return { ...rounded, balances, projectedBalances, projected: projectedBalances,
+  return { ...rounded, balances, unroundedBalances, projectedBalances, projected: projectedBalances,
     transfers: plan.transfers, suggested: plan.transfers,
     status: activityStatus(expenses, settlements, balances) };
 }

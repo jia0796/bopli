@@ -90,3 +90,32 @@ test('manual and automatic transfers remain stable, direct, and precisely balanc
   assert.ok(Object.values(leftover).every(n=>n===0));
   assert.deepEqual(plan,buildSettlementPlan({d:300,c:700,b:-600,a:-400},manual));
 });
+
+test('edit history describes changed payment and allocation even when title and total stay fixed',async()=>{
+  const {describeExpenseChanges}=await import('./expenseHistory.js');
+  const before={title:'晚餐',amount:100,paidBy:'b',allocations:{a:50,b:50},splitMode:'equal'};
+  const after={...before,paidBy:'a',allocations:{a:40,b:60},splitMode:'custom',customAmounts:{a:40,b:60}};
+  const changes=describeExpenseChanges(before,after,id=>id.toUpperCase());
+  assert.ok(changes.some(s=>s.includes('A 付款')));
+  assert.ok(changes.some(s=>s.includes('B 分攤')&&s.includes('50')&&s.includes('60')));
+  assert.ok(changes.some(s=>s.includes('分攤方式')));
+  assert.ok(changes.every(s=>!s.includes('版')));
+});
+test('locked rounding preview and member ledger use the same adjusted balance',()=>{
+  const a={...activity,roundingLockedAt:'2026-10-01',roundingConfig:{mode:'assigned',tailUids:['c']}};
+  const e={...expense,amount:100,paidBy:'b',participantIds:['a','b','c'],allocations:{a:34,b:33,c:33}};
+  const f=activityFinance(a,[e],[]);
+  assert.deepEqual(f.unroundedBalances,{a:-34,b:67,c:-33});
+  const ledgers=memberLedger(a.participantIds,[e],[],f);
+  assert.deepEqual(Object.fromEntries(Object.entries(ledgers).map(([id,l])=>[id,l.balance])),f.balances);
+});
+
+test('round-up extra credit is included in member ledger and balances',()=>{
+  const a={...activity,roundingLockedAt:'2026-10-01',roundingConfig:{mode:'roundUp'}};
+  const e={...expense,amount:100,paidBy:'b',participantIds:['a','b','c'],allocations:{a:34,b:33,c:33}};
+  const f=activityFinance(a,[e],[]);
+  const ledgers=memberLedger(a.participantIds,[e],[],f);
+  assert.equal(ledgers.b.roundingCredit,2);
+  assert.equal(ledgers.b.balance,68);
+  assert.equal(Object.values(ledgers).reduce((sum,l)=>sum+l.balance,0),0);
+});
