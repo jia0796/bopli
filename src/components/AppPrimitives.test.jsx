@@ -14,6 +14,12 @@ describe('shared UI primitives', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it('can render a single-action information modal', () => {
+    render(<ConfirmModal title="說明" hideCancel confirmText="知道了" onConfirm={vi.fn()} onClose={vi.fn()}><p>內容</p></ConfirmModal>);
+    expect(screen.getByRole('button',{name:'知道了'})).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'再想想'})).not.toBeInTheDocument();
+  });
+
   it('renders a dedicated empty state instead of implying settlement', () => {
     render(<EmptyState icon={ReceiptText} title="尚未開始記帳" detail="新增第一筆支出後才會顯示結算狀態。"/>);
     expect(screen.getByText('尚未開始記帳')).toBeInTheDocument();
