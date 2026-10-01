@@ -26,3 +26,13 @@ jobs:
         run: npm run build
       - name: Run domain, stress, and UI tests
         run: npm test
+      - name: Audit high and critical vulnerabilities
+        run: npm audit --audit-level=high
+      - name: Upload generated lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock-2.3
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
