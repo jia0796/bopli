@@ -1,3 +1,4 @@
+import { repaymentReferencesExpense } from './settlementBatch.js';
 export const EDIT_POLICY = Object.freeze({ OWNER_ONLY: 'creatorOnly', ALL: 'allMembers' });
 
 export function isOwner(group, userId) {
@@ -19,8 +20,7 @@ export function canManageFinalRounding(group, userId) {
 export function canEditExpense(group, expense, userId, settlements = []) {
   if (!group || !expense || !group.memberIds.includes(userId)) return false;
   // Once repayments exist, protect settled/pending data from unilateral edits.
-  if (settlements.some((item) => item.activityId === expense.activityId &&
-    (item.status === 'pending' || item.status === 'confirmed' || item.status === 'disputed'))) return false;
+  if (settlements.some(item=>repaymentReferencesExpense(item,expense))) return false;
   return group.editPolicy === EDIT_POLICY.ALL || expense.createdBy === userId;
 }
 

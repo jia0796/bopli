@@ -79,7 +79,7 @@ export function balanceActivityAllocations(participantIds, expenses) {
 
 /** Repayments and locked plans freeze historical allocation snapshots. */
 export function balanceStoreAllocations(store) {
-  if(store.version>24)return store;
+  if(store.version>25)return store;
   let expenses=store.expenses;
   for(const activity of store.activities) {
     if(activity.roundingLockedAt||(store.settlements||[]).some(s=>s.activityId===activity.id&&['pending','confirmed','disputed'].includes(s.status)))continue;

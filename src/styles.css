@@ -766,3 +766,5 @@ body{background:#f3eee9;color:var(--ink)}
 .modal input,.modal textarea { scroll-margin-top:72px; scroll-margin-bottom:88px; }
 .split-settings-modal { min-height:min(88dvh,calc(var(--visual-viewport-height,100dvh) - 8px)); }
 .settlement-plan-modal > * { flex-shrink:0; }
+/* 2.5 fixed PNG preview: swipe never changes page selection. */
+.share-modal{width:min(100%,560px);overflow:auto}.share-carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;touch-action:pan-x pan-y}.share-page{flex:0 0 94%;scroll-snap-align:center}.share-page img{display:block;width:100%;height:auto;border-radius:12px}.share-page label{display:flex;gap:10px;align-items:center;padding:12px}.snapshot-status{padding:12px;border-radius:12px;background:#FFEAE2;margin:12px 0}.primary-button:disabled{background:#d7d4d2;color:#555;cursor:default}

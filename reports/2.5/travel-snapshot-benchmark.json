@@ -1,0 +1,17 @@
+[
+  {
+    "round": 1,
+    "snapshotMs": 21,
+    "snapshotBytes": 486975
+  },
+  {
+    "round": 2,
+    "snapshotMs": 9,
+    "snapshotBytes": 486975
+  },
+  {
+    "round": 3,
+    "snapshotMs": 9,
+    "snapshotBytes": 486975
+  }
+]

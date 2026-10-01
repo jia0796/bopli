@@ -1,11 +1,12 @@
+import { assertName } from './inputRules.js';
 import { splitEqual } from './money.js';
 import { EDIT_POLICY } from './domain.js';
 
 import { STORE_SCHEMA_VERSION } from '../version.js';
 
-export const STORAGE_KEY = 'bopli-test-2.4-v1';
-export const LEGACY_STORAGE_KEYS = ['bopli-test-2.3-v1', 'bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
-export const RESET_MARKER_KEY = 'bopli-test-2.4-reset-once-20261001';
+export const STORAGE_KEY = 'bopli-test-2.5-v1';
+export const LEGACY_STORAGE_KEYS = ['bopli-test-2.4-v1', 'bopli-test-2.3-v1', 'bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
+export const RESET_MARKER_KEY = 'bopli-test-2.5-reset-once-20261001';
 export const now = () => new Date().toISOString();
 export const makeId = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -81,15 +82,15 @@ function readStoreKey(key) {
 }
 
 export function loadStore() {
-  // User-requested one-time reset for bopli_test.2.4. The marker prevents
-  // refreshes from wiping newly created 2.4 data again.
+  // User-requested one-time reset for bopli_test.2.5. The marker prevents
+  // refreshes from wiping newly created 2.5 data again.
   const resetDone = localStorage.getItem(RESET_MARKER_KEY) === '1';
   if (!resetDone) {
-    for (const key of [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]) {
+    for (const key of LEGACY_STORAGE_KEYS) {
       try { localStorage.removeItem(key); } catch { /* best effort */ }
     }
     try { localStorage.setItem(RESET_MARKER_KEY, '1'); } catch { /* persistence layer reports future writes */ }
-    return freshStore();
+    // Preserve already-created 2.5 data even when the marker was missing.
   }
 
   const current = readStoreKey(STORAGE_KEY);
@@ -117,6 +118,7 @@ export function saveStore(data) {
 }
 
 export function createGuestStore(accountName, withDemo = false) {
+  accountName = assertName(accountName);
   const data = freshStore();
   const me = makeId();
   data.currentUserId = me;
