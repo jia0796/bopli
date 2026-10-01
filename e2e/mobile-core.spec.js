@@ -54,7 +54,7 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await expect(page.getByText('還沒有支出')).toBeVisible();
 
     // 回群組新增成員；既有活動不應自動加入。
-    await page.locator('.activity-topbar .icon-button').first().click();
+    await page.getByRole('button', { name: '返回群組' }).click();
     await page.getByRole('button', { name: '群組設定' }).click();
     await page.getByRole('button', { name: /成員/ }).click();
     await page.getByRole('button', { name: /新增測試成員/ }).click();
