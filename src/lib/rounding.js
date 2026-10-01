@@ -6,7 +6,6 @@ export function buildRoundingModel(participantIds, expenses) {
   const currentShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   const fixedShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   const exactEqual = Object.fromEntries(participantIds.map((id)=>[id,0]));
-  const roundUpShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   let originalTotal = 0;
 
   for (const expense of expenses) {
@@ -26,18 +25,15 @@ export function buildRoundingModel(participantIds, expenses) {
     for (const line of lines) {
       const originalIds = line.participantIds || [];
       const ids = originalIds.filter((id)=>id in exactEqual);
-      if (line.splitMode === 'equal' && ids.length && originalIds.length) {
+      if (line.splitMode === 'equal' && ids.length === originalIds.length && originalIds.length) {
         const exact = Number(line.amount || 0) / originalIds.length;
         ids.forEach((id)=>{
           exactEqual[id] += exact;
-          // Ceil each original allocation once, before aggregating the ledger.
-          roundUpShare[id] += Math.ceil(exact - EPS);
         });
       } else {
         for (const id of participantIds) {
           const share = line.allocations?.[id] || 0;
           fixedShare[id] += share;
-          roundUpShare[id] += share;
         }
       }
     }
@@ -53,7 +49,7 @@ export function buildRoundingModel(participantIds, expenses) {
   const floorTotal = Object.values(floorShare).reduce((s,n)=>s+n,0);
   const requiredTailUnits = Math.max(0, Math.round(originalTotal - floorTotal));
   const candidates = participantIds.filter((id)=>fractions[id] > EPS);
-  return { participantIds, currentShare, fixedShare, exactEqual, floorShare, fractions, requiredTailUnits, candidates, originalTotal, roundUpShare };
+  return { participantIds, currentShare, fixedShare, exactEqual, floorShare, fractions, requiredTailUnits, candidates, originalTotal };
 }
 
 export function chooseBalanced(ids, count, order = ids) {
@@ -68,7 +64,7 @@ export function sharesForRounding(model, config = {}) {
   if (mode === 'current') return { shares: { ...model.currentShare }, extraPool: 0, tailUids: [] };
   const shares = { ...model.floorShare };
   if (mode === 'roundUp') {
-    const shares = { ...model.roundUpShare };
+    const shares = Object.fromEntries(model.participantIds.map(id=>[id,model.fixedShare[id]+Math.ceil(model.exactEqual[id]-EPS)]));
     const extraPool = Object.values(shares).reduce((sum, amount)=>sum+amount,0) - model.originalTotal;
     return { shares, extraPool, tailUids: model.participantIds.filter((id)=>shares[id]>model.currentShare[id]) };
   }

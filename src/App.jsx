@@ -25,6 +25,7 @@ import {
 import { buildRoundingModel } from './lib/rounding.js';
 import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
 import { useStorePersistence } from './lib/useStorePersistence.js';
+import { balanceStoreAllocations } from './lib/allocationBalance.js';
 import { useModalViewport } from './lib/useModalViewport.js';
 import { buildStoreIndexes, itemsFor } from './lib/selectors.js';
 import { activityDeletionStatus, deleteActivityCascade, deleteGroupCascade, groupDeletionStatus } from './lib/lifecycle.js';
@@ -240,7 +241,7 @@ function RoundingPanel({ activity, group, actorId, expenses, settlements, baseBa
 
   return <section className="content-card rounding-panel"><div className="section-heading in-card"><div><h2>最終尾差處理</h2><p>只有群主與副群主可以決定；一般成員可查看結果。</p></div>{locked&&<span className="status-tag confirmed">已鎖定</span>}</div>
     <div className="rounding-mode-list">
-      {[['current','維持目前精準結果','沿用每筆平均分攤時輪流分配的 NT$1。'],['assigned','指定必要尾差承擔者',`活動統整後需 ${model.requiredTailUnits} 個 NT$1 尾差。`],['random','隨機決定必要尾差','系統隨機選出需要多付 NT$1 的成員。'],['roundUp','全員向上補齊','每筆平均分攤的小數各自向上補齊，再加總；多出金額分給仍需收錢的人。']].map(([id,label,desc])=><button type="button" key={id} className={`rounding-mode ${config.mode===id?'selected':''}`} disabled={!canManage||locked} onClick={()=>mode(id)}><span className="radio-dot"/><span><strong>{label}</strong><small>{desc}</small></span></button>)}
+      {[['current','維持目前精準結果','先平衡活動累計分攤，再將整數尾差分配回每筆支出。'],['assigned','指定必要尾差承擔者',`活動統整後需 ${model.requiredTailUnits} 個 NT$1 尾差。`],['random','隨機決定必要尾差','系統隨機選出需要多付 NT$1 的成員。'],['roundUp','全員向上補齊','先累計每人的原始分攤，再向上補齊；多出金額分給仍需收錢的人。']].map(([id,label,desc])=><button type="button" key={id} className={`rounding-mode ${config.mode===id?'selected':''}`} disabled={!canManage||locked} onClick={()=>mode(id)}><span className="radio-dot"/><span><strong>{label}</strong><small>{desc}</small></span></button>)}
     </div>
 
     {config.mode==='assigned'&&<div className="rounding-config-box"><div className="selected-count-line"><strong>已選 {(config.tailUids||[]).length} / {model.requiredTailUnits} 人</strong><small>只有活動統整後仍有小數尾差的成員會出現</small></div><div className="chip-list">{model.candidates.map((id)=><button type="button" key={id} className={`member-chip ${(config.tailUids||[]).includes(id)?'selected':''}`} disabled={!canManage||locked} onClick={()=>toggleTail(id)}>{nameFor(id)} {(config.tailUids||[]).includes(id)&&<Check size={13}/>}</button>)}</div></div>}
@@ -332,7 +333,11 @@ function SettlementPlanModal({ balances, currentRows, nameFor, onClose, onSave }
 }
 
 export default function App() {
-  const [data,setData]=useState(loadStore);
+  const [data,setStoredData]=useState(()=>balanceStoreAllocations(loadStore()));
+  function setData(update) { setStoredData(previous=>{
+    const next=typeof update==='function'?update(previous):update;
+    return next.expenses===previous.expenses&&next.activities===previous.activities&&next.settlements===previous.settlements?next:balanceStoreAllocations(next);
+  }); }
   const [screen,setScreen]=useState('home');
   const [groupId,setGroupId]=useState(null);
   const [activityId,setActivityId]=useState(null);

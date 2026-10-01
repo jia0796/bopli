@@ -180,3 +180,35 @@ test('shared input modal adapts to reduced visual viewport with close, input and
   await expect(page.getByRole('heading',{name:'Keyboard',exact:true})).toBeVisible();
   expect(before).toBeGreaterThanOrEqual(0);
 });
+
+test('cumulative 15-person fairness backfills receipt allocations before rounding up',async({page})=>{
+  const data=fixture('owner',{large:true});
+  const ids=data.activities[0].participantIds.slice(0,15);
+  data.activities[0].participantIds=ids;
+  data.groups[0].memberIds=ids;
+  data.activities[0].settlementManualTransfers=[];
+  data.expenses=[4000,2000].map((amount,index)=>{
+    const floor=Math.floor(amount/15), remainder=amount%15;
+    const allocations=Object.fromEntries(ids.map(id=>[id,floor]));
+    for(let i=0;i<remainder;i++)allocations[ids[(i+index)%15]]++;
+    return {id:'e'+index,activityId:'a',title:'Expense '+index,amount,paidBy:'owner',createdBy:'owner',participantIds:ids,splitMode:'equal',allocations,createdAt:'2026-10-01',history:[]};
+  });
+  await seed(page,data);await openActivity(page,'帳目');
+  await expect.poll(async()=>{
+    const saved=await state(page);
+    return ids.map(id=>saved.expenses.reduce((sum,e)=>sum+e.allocations[id],0));
+  }).toEqual(ids.map(()=>400));
+  for(const card of await page.locator('.ledger-person-card').all()) {
+    if(!(await card.textContent()).includes('Owner'))await expect(card).toContainText('NT$ 400');
+  }
+  await page.getByRole('button',{name:'結算',exact:true}).click();
+  await page.getByText('進階結算設定',{exact:true}).click();
+  await page.getByRole('button',{name:/全員向上補齊/}).click();
+  await expect(page.locator('.rounding-extra')).toContainText('NT$ 0');
+  await expect(page.locator('.rounding-preview')).toHaveCount(0);
+  await page.getByRole('button',{name:'確認結算方案'}).click();
+  const saved=await state(page);
+  for(const expense of saved.expenses)expect(Object.values(expense.allocations).reduce((sum,n)=>sum+n,0)).toBe(expense.amount);
+  await page.reload();await openActivity(page,'帳目');
+  await expect(page.locator('.ledger-person-card').filter({hasText:'m0'})).toContainText('NT$ 400');
+});
