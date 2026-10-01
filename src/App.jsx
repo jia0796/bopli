@@ -240,8 +240,16 @@ export default function App() {
   const [expenseFilter,setExpenseFilter]=useState('all');
   const [successFlash,setSuccessFlash]=useState('');
   const [navigationOrigin,setNavigationOrigin]=useState(null);
+  const [storageError,setStorageError]=useState('');
 
-  useEffect(()=>{ try{saveStore(data);}catch{/* prototype only */} },[data]);
+  useEffect(()=>{
+    try {
+      saveStore(data);
+      setStorageError('');
+    } catch (error) {
+      setStorageError(error?.message || '本機資料儲存失敗，本次變更可能尚未安全寫入。');
+    }
+  },[data]);
   useEffect(()=>{ window.scrollTo({top:0,behavior:'instant'}); },[screen,groupId,activityId,tab]);
   useEffect(()=>{ if(!toast)return;const t=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(t); },[toast]);
   useEffect(()=>{ if(!successFlash)return;const t=setTimeout(()=>setSuccessFlash(''),1500);return()=>clearTimeout(t); },[successFlash]);
@@ -468,6 +476,7 @@ export default function App() {
   const pageHeader = (showBrand=true) => <header className="app-header">{showBrand?<button className="brand-button" type="button" onClick={goHome}><BrandLockup compact/></button>:<span/>}<div className="header-actions"><button className="header-icon" type="button" aria-label="通知" onClick={openNotifications}><Bell size={20}/>{actionableCount>0&&<span className="notification-badge">{actionableCount>9?'9+':actionableCount}</span>}</button><button className="avatar-button" type="button" aria-label="我的" onClick={()=>setScreen('profile')}>{initials(accountName())}</button></div></header>;
 
   return <div className={`app-shell ${screen==='activity'?'has-activity-nav':''}`}><div className="test-version-strip"><span>{APP_LABEL} · 測試身分：<strong>{accountName()}</strong></span><button type="button" onClick={()=>setModal({kind:'switchIdentity'})}>切換</button></div>
+    {storageError&&<div className="info-card storage-error-banner" role="alert"><CircleAlert size={18}/><p><strong>資料尚未安全儲存</strong><br/>{storageError}<br/>請先不要重新整理或關閉此頁。</p></div>}
     {screen==='home'&&pageHeader(true)}
 
     <main className="page-content">
