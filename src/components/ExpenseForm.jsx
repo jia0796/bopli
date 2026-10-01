@@ -128,6 +128,7 @@ export default function ExpenseForm({ activity, users, actorId, expense, draft=n
   const [fullEntries,setFullEntries]=useState(()=>seed?.fullEntries?seed.fullEntries.map((e)=>normalizeEntry(e,activity)):seed?.expenseType==='shopping'&&seed?.shoppingMode==='full'&&seed?.lines?.length?seed.lines.map((line)=>normalizeEntry({...line,amount:String(line.amount),participants:[...(line.participantIds||[])],custom:Object.fromEntries(Object.entries(line.allocations||{}).map(([id,value])=>[id,String(value)]))},activity)):[emptyEntry(activity)]);
   const [splitTarget,setSplitTarget]=useState(seed?.splitTarget || null);
   const [error,setError]=useState('');
+  const [moreOpen,setMoreOpen]=useState(()=>Boolean(seed?.expenseType==='shopping'||seed?.payments?.length>1||seed?.showChange||seed?.change?.amount));
 
   // Keep the simple split amount synchronized with the auto-calculated payment total until the user switches to shopping mode.
   React.useEffect(()=>{ if (expenseType==='simple') setSimpleEntry((prev)=>({...prev,amount})); },[amount,expenseType]);
@@ -198,7 +199,7 @@ export default function ExpenseForm({ activity, users, actorId, expense, draft=n
 
       {expenseType==='simple'&&<button type="button" className="split-summary-card" onClick={()=>setSplitTarget({kind:'simple'})}><span><small>一起分</small><strong>{splitSummary(simpleEntry)}</strong></span><span>調整 <ChevronRight size={17}/></span></button>}
 
-      <details className="disclosure expense-more-options" defaultOpen={expenseType==='shopping'||payments.length>1||showChange}>
+      <details className="disclosure expense-more-options" open={moreOpen} onToggle={(e)=>setMoreOpen(e.currentTarget.open)}>
         <summary>更多記帳方式</summary>
         <div className="advanced-expense-options">
           <div className="field"><span>記帳類型</span><div className="segmented"><button type="button" className={expenseType==='simple'?'active':''} onClick={()=>setExpenseType('simple')}>一般支出</button><button type="button" className={expenseType==='shopping'?'active':''} onClick={()=>setExpenseType('shopping')}>購物單分帳</button></div></div>
