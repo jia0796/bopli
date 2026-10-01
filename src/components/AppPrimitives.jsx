@@ -1,5 +1,7 @@
-import React, { useRef } from 'react';
-import { ArrowRight, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ArrowRight, ChevronRight, X } from 'lucide-react';
+
+const initials = (name) => (name || '?').slice(0, 1);
 
 export function PersonAvatar({ name, small=false }) {
   return <span className={`avatar ${small?'avatar-small':''}`} aria-hidden="true">{initials(name)}</span>;
