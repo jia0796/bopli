@@ -28,8 +28,6 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: '建立活動' }).last().click();
 
     await expect(page.getByText('巴黎')).toBeVisible();
-    await page.getByRole('button', { name: /巴黎/ }).click();
-
     await expect(page.getByText('還沒有支出')).toBeVisible();
     await page.getByRole('button', { name: /記一筆/ }).click();
     await page.getByLabel('支出名稱').fill('晚餐');
@@ -63,7 +61,6 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: /建立活動/ }).first().click();
     await page.getByLabel('活動名稱').fill('第一天');
     await page.getByRole('button', { name: '建立活動' }).last().click();
-    await page.getByRole('button', { name: /第一天/ }).click();
 
     await page.getByRole('button', { name: '活動設定' }).click();
     await page.getByRole('button', { name: /一起分帳的人/ }).click();
