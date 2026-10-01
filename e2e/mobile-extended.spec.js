@@ -95,7 +95,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await addSwitchableIdentityAndSwitch(page, '小安');
 
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
-    await page.getByRole('button', { name: '結算' }).click();
+    await page.getByRole('button', { name: '結算', exact: true }).click();
     await expect(page.getByText('你要付')).toBeVisible();
     await page.getByRole('button', { name: '記錄付款' }).click();
     await page.getByRole('button', { name: '記錄付款' }).last().click();
@@ -104,7 +104,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await page.getByRole('button', { name: '切換' }).click();
     await page.getByRole('button', { name: '回到預設身分' }).click();
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
-    await page.getByRole('button', { name: '結算' }).click();
+    await page.getByRole('button', { name: '結算', exact: true }).click();
     await expect(page.getByText('等你確認')).toBeVisible();
     await page.getByRole('button', { name: /確認已收到/ }).click();
     await expect(page.getByText('目前已結清')).toBeVisible();
@@ -193,10 +193,10 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     await goHomeFromActivity(page);
 
     // Re-open France and verify its original ledger is still isolated.
-    await page.getByRole('button', { name: /法國旅行/ }).click();
+    await page.locator('.group-card').filter({hasText:'法國旅行'}).click();
     await page.getByRole('button', { name: /巴黎行程/ }).click();
-    await expect(page.getByText('巴黎晚餐')).toBeVisible();
-    await expect(page.getByText('第二群晚餐')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /查看 巴黎晚餐/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /查看 第二群晚餐/ })).toHaveCount(0);
     await page.getByRole('button', { name: '活動設定' }).click();
     await page.getByRole('button', { name: /一起分帳的人/ }).click();
     await expect(page.getByText('13 人參與')).toBeVisible();
