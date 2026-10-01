@@ -1,12 +1,14 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import ExpenseForm from './ExpenseForm.jsx';
 import { ActivitySettings, GroupSettings } from './SecondaryScreens.jsx';
 
 const group={id:'g',name:'法國旅行',ownerUid:'owner',memberIds:['owner','member'],deputyUids:[],allowMemberInvites:false,editPolicy:'creatorOnly'};
 const activity={id:'a',groupId:'g',title:'巴黎',participantIds:['owner','member'],auditHistory:[],memberReviewIds:[]};
 const users={owner:{id:'owner',nickname:'Cayden'},member:{id:'member',nickname:'小安'}};
+
+afterEach(()=>cleanup());
 
 describe('2.3 clarity UI',()=>{
   it('新增支出先顯示基本操作，進階功能收在更多記帳方式',()=>{
