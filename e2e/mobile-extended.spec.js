@@ -77,7 +77,7 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
     await page.getByRole('button', { name: '確認移出活動' }).click();
     await expect(page.getByText('1 人參與')).toBeVisible();
 
-    await page.getByRole('button', { name: '活動' }).click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
     await expect(page.getByText('午餐')).toBeVisible();
     await page.getByRole('button', { name: '帳目', exact: true }).click();
     await expect(page.getByText('小安')).toBeVisible();
@@ -92,12 +92,12 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
 
     await page.getByRole('button', { name: '活動成員' }).click();
     await expect(page.getByRole('heading', { name: '活動成員' })).toBeVisible();
-    await page.getByRole('button', { name: '活動' }).click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
 
     await goHomeFromActivity(page);
     await addSwitchableIdentityAndSwitch(page, '小安');
     await page.locator('.action-card').filter({hasText:'捷徑活動'}).click();
-    await expect(page.getByText('我要付')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '我要付', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '結算', exact: true })).toHaveClass(/selected/);
   });
 
@@ -113,7 +113,7 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
 
     await page.getByRole('button', { name: /晚餐活動/ }).first().click();
     await page.getByRole('button', { name: '結算', exact: true }).click();
-    await expect(page.getByText('我要付')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '我要付', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '記錄付款' }).click();
     await page.getByRole('button', { name: '記錄付款' }).last().click();
     await expect(page.getByText(/已記錄付款/)).toBeVisible();
@@ -199,7 +199,7 @@ test.describe('Bopli 2.4 mobile extended journeys', () => {
     await expect(page.getByText('13 人參與')).toBeVisible();
 
     // Build a completely separate second group and activity.
-    await page.getByRole('button', { name: '活動' }).click();
+    await page.getByRole('button', { name: '活動', exact: true }).click();
     await page.getByRole('button', { name: '返回群組' }).click();
     await page.getByRole('button', { name: '返回首頁' }).click();
     await createGroup(page, '第二群組');
