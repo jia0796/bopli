@@ -6,6 +6,7 @@ export function buildRoundingModel(participantIds, expenses) {
   const currentShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   const fixedShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   const exactEqual = Object.fromEntries(participantIds.map((id)=>[id,0]));
+  const roundUpShare = Object.fromEntries(participantIds.map((id)=>[id,0]));
   let originalTotal = 0;
 
   for (const expense of expenses) {
@@ -27,9 +28,17 @@ export function buildRoundingModel(participantIds, expenses) {
       const ids = originalIds.filter((id)=>id in exactEqual);
       if (line.splitMode === 'equal' && ids.length && originalIds.length) {
         const exact = Number(line.amount || 0) / originalIds.length;
-        ids.forEach((id)=>{ exactEqual[id] += exact; });
+        ids.forEach((id)=>{
+          exactEqual[id] += exact;
+          // Ceil each original allocation once, before aggregating the ledger.
+          roundUpShare[id] += Math.ceil(exact - EPS);
+        });
       } else {
-        for (const id of participantIds) fixedShare[id] += line.allocations?.[id] || 0;
+        for (const id of participantIds) {
+          const share = line.allocations?.[id] || 0;
+          fixedShare[id] += share;
+          roundUpShare[id] += share;
+        }
       }
     }
   }
@@ -44,7 +53,7 @@ export function buildRoundingModel(participantIds, expenses) {
   const floorTotal = Object.values(floorShare).reduce((s,n)=>s+n,0);
   const requiredTailUnits = Math.max(0, Math.round(originalTotal - floorTotal));
   const candidates = participantIds.filter((id)=>fractions[id] > EPS);
-  return { participantIds, currentShare, fixedShare, exactEqual, floorShare, fractions, requiredTailUnits, candidates, originalTotal };
+  return { participantIds, currentShare, fixedShare, exactEqual, floorShare, fractions, requiredTailUnits, candidates, originalTotal, roundUpShare };
 }
 
 export function chooseBalanced(ids, count, order = ids) {
@@ -59,8 +68,9 @@ export function sharesForRounding(model, config = {}) {
   if (mode === 'current') return { shares: { ...model.currentShare }, extraPool: 0, tailUids: [] };
   const shares = { ...model.floorShare };
   if (mode === 'roundUp') {
-    model.candidates.forEach((id)=>{ shares[id] += 1; });
-    return { shares, extraPool: Math.max(0, model.candidates.length - model.requiredTailUnits), tailUids: [...model.candidates] };
+    const shares = { ...model.roundUpShare };
+    const extraPool = Object.values(shares).reduce((sum, amount)=>sum+amount,0) - model.originalTotal;
+    return { shares, extraPool, tailUids: model.participantIds.filter((id)=>shares[id]>model.currentShare[id]) };
   }
   const requested = mode === 'assigned' ? (config.tailUids || []) : (config.randomTailUids || []);
   const tailUids = chooseBalanced(model.candidates, model.requiredTailUnits, requested);
@@ -83,7 +93,7 @@ export function applyRoundingToBalances(baseBalances, model, config = {}) {
 
   let poolAllocations = {};
   if (extraPool > 0) {
-    const eligible = model.participantIds.filter((id)=>(balances[id] || 0) > 0);
+    const eligible = model.participantIds.filter((id)=>(baseBalances[id] || 0) > 0 && (balances[id] || 0) > 0);
     const requested = config.receiverMode === 'selected' ? (config.receiverUids || []).filter((id)=>eligible.includes(id)) : eligible;
     const recipients = requested.length ? requested : eligible;
     poolAllocations = distributePool(extraPool, recipients, config.receiverOrder || recipients);

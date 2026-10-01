@@ -22,7 +22,7 @@ import {
   canEditExpense, canManageActivity, canManageFinalRounding, changeGroupPolicy, EDIT_POLICY,
   isDeputy, isOwner, setDeputy, updateExpenseWithHistory,
 } from './lib/domain.js';
-import { applyRoundingToBalances, buildRoundingModel } from './lib/rounding.js';
+import { buildRoundingModel } from './lib/rounding.js';
 import { createGuestStore, freshStore, loadStore, makeId, now, STORAGE_KEY } from './lib/store.js';
 import { useStorePersistence } from './lib/useStorePersistence.js';
 import { useModalViewport } from './lib/useModalViewport.js';
@@ -219,12 +219,12 @@ function SuccessFlash({ text }) {
   return <div className="success-flash"><div><CheckCircle2 size={34}/><strong>{text}</strong></div></div>;
 }
 
-function RoundingPanel({ activity, group, actorId, expenses, baseBalances, repaymentsStarted=false, nameFor, onUpdateActivity }) {
+function RoundingPanel({ activity, group, actorId, expenses, settlements, baseBalances, repaymentsStarted=false, nameFor, onUpdateActivity }) {
   const model=useMemo(()=>buildRoundingModel(activity.participantIds,expenses),[activity.participantIds,expenses]);
   const config=activity.roundingConfig || {mode:'current',receiverMode:'random',randomTailUids:[],receiverOrder:[]};
   const canManage=canManageFinalRounding(group,actorId);
   const locked=Boolean(activity.roundingLockedAt)||repaymentsStarted;
-  const result=useMemo(()=>applyRoundingToBalances(baseBalances,model,config),[baseBalances,model,config]);
+  const result=useMemo(()=>activityFinance(activity,expenses,settlements,config),[activity,expenses,settlements,config]);
   const candidateSet=new Set(model.candidates);
   const affected=activity.participantIds.filter((id)=>(baseBalances[id]||0)!==(result.balances[id]||0));
   const creditorsBefore=activity.participantIds.filter((id)=>(baseBalances[id]||0)>0);
@@ -240,7 +240,7 @@ function RoundingPanel({ activity, group, actorId, expenses, baseBalances, repay
 
   return <section className="content-card rounding-panel"><div className="section-heading in-card"><div><h2>最終尾差處理</h2><p>只有群主與副群主可以決定；一般成員可查看結果。</p></div>{locked&&<span className="status-tag confirmed">已鎖定</span>}</div>
     <div className="rounding-mode-list">
-      {[['current','維持目前精準結果','沿用每筆平均分攤時輪流分配的 NT$1。'],['assigned','指定必要尾差承擔者',`活動統整後需 ${model.requiredTailUnits} 個 NT$1 尾差。`],['random','隨機決定必要尾差','系統隨機選出需要多付 NT$1 的成員。'],['roundUp','全員向上補齊','有小數尾差的人全部向上補齊，多出金額分給仍需收錢的人。']].map(([id,label,desc])=><button type="button" key={id} className={`rounding-mode ${config.mode===id?'selected':''}`} disabled={!canManage||locked} onClick={()=>mode(id)}><span className="radio-dot"/><span><strong>{label}</strong><small>{desc}</small></span></button>)}
+      {[['current','維持目前精準結果','沿用每筆平均分攤時輪流分配的 NT$1。'],['assigned','指定必要尾差承擔者',`活動統整後需 ${model.requiredTailUnits} 個 NT$1 尾差。`],['random','隨機決定必要尾差','系統隨機選出需要多付 NT$1 的成員。'],['roundUp','全員向上補齊','每筆平均分攤的小數各自向上補齊，再加總；多出金額分給仍需收錢的人。']].map(([id,label,desc])=><button type="button" key={id} className={`rounding-mode ${config.mode===id?'selected':''}`} disabled={!canManage||locked} onClick={()=>mode(id)}><span className="radio-dot"/><span><strong>{label}</strong><small>{desc}</small></span></button>)}
     </div>
 
     {config.mode==='assigned'&&<div className="rounding-config-box"><div className="selected-count-line"><strong>已選 {(config.tailUids||[]).length} / {model.requiredTailUnits} 人</strong><small>只有活動統整後仍有小數尾差的成員會出現</small></div><div className="chip-list">{model.candidates.map((id)=><button type="button" key={id} className={`member-chip ${(config.tailUids||[]).includes(id)?'selected':''}`} disabled={!canManage||locked} onClick={()=>toggleTail(id)}>{nameFor(id)} {(config.tailUids||[]).includes(id)&&<Check size={13}/>}</button>)}</div></div>}
@@ -248,7 +248,7 @@ function RoundingPanel({ activity, group, actorId, expenses, baseBalances, repay
     {config.mode==='random'&&<div className="rounding-config-box"><div className="result-row"><span>目前隨機結果</span><strong>{(config.randomTailUids||[]).map(nameFor).join('、') || '尚未產生'}</strong></div>{canManage&&!locked&&<button className="outline-button full" type="button" onClick={()=>update({randomTailUids:shuffle(model.candidates).slice(0,model.requiredTailUnits)})}><Shuffle size={16}/>重新隨機</button>}</div>}
 
     {config.mode==='roundUp'&&<div className="rounding-config-box"><div className="rounding-extra"><span>全員向上補齊後多出</span><strong>{formatMoney(result.extraPool)}</strong></div><div className="field"><span>多出金額分配</span><div className="segmented"><button type="button" disabled={!canManage||locked} className={(config.receiverMode||'random')==='random'?'active':''} onClick={()=>update({receiverMode:'random',receiverOrder:shuffle(creditorsBefore)})}>系統隨機平均</button><button type="button" disabled={!canManage||locked} className={config.receiverMode==='selected'?'active':''} onClick={()=>update({receiverMode:'selected',receiverUids:[]})}>指定接收人</button></div></div>{config.receiverMode==='selected'&&<div className="chip-list">{creditorsBefore.map((id)=><button type="button" key={id} className={`member-chip ${(config.receiverUids||[]).includes(id)?'selected':''}`} disabled={!canManage||locked} onClick={()=>toggleReceiver(id)}>{nameFor(id)} {(config.receiverUids||[]).includes(id)&&<Check size={13}/>}</button>)}</div>}{(config.receiverMode||'random')==='random'&&canManage&&!locked&&<button className="outline-button full" type="button" onClick={()=>update({receiverOrder:shuffle(creditorsBefore)})}><Shuffle size={16}/>重新隨機分配</button>}
-      {result.extraPool>0&&<div className="pool-preview">{Object.entries(result.poolAllocations||{}).filter(([,n])=>n>0).map(([id,n])=><div key={id}><span>{nameFor(id)}</span><strong>+{formatMoney(n)}</strong></div>)}</div>}
+      {result.extraPool>0&&<div className="pool-preview">{Object.entries(result.poolAllocations||{}).filter(([,n])=>n>0).map(([id,n])=><div key={id}><span>{nameFor(id)}</span><strong>額外應收 +{formatMoney(n)}{result.shares[id]>model.currentShare[id]&&<small> · 分攤補齊 +{formatMoney(result.shares[id]-model.currentShare[id])}</small>}</strong></div>)}</div>}
     </div>}
 
     {affected.length>0&&<div className="rounding-preview"><h3>尾差前 → 尾差後</h3>{affected.map((id)=>{const before=baseBalances[id]||0;const after=result.balances[id]||0;const status=(v)=>v>0?`應收 ${formatMoney(v)}`:v<0?`應付 ${formatMoney(Math.abs(v))}`:'已結清';return <div className="result-row" key={id}><span>{nameFor(id)}</span><strong>{status(before)} → {status(after)}</strong></div>;})}</div>}
@@ -787,7 +787,7 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
     return [...map.values()];
   },[pay,pendingOutgoing]);
 
-  const share=expenses.reduce((sum,expense)=>sum+(expense.allocations?.[actorId]||0),0);
+  const share=finalFinance.shares?.[actorId] ?? expenses.reduce((sum,expense)=>sum+(expense.allocations?.[actorId]||0),0);
   const advanced=expenses.reduce((sum,expense)=>{
     const paid=(expense.payments||[{uid:expense.paidBy,amount:expense.amount}]).filter((item)=>item.uid===actorId).reduce((s,item)=>s+item.amount,0);
     const returned=expense.change?.receiverUid===actorId?(expense.change?.amount||0):0;
@@ -824,7 +824,7 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
 
     {completedMine.length>0&&<details className="disclosure settlement-completed"><summary>查看已完成還款 {completedMine.length} 筆</summary>{[...completedMine].reverse().map((s)=><div className="history-line" key={s.id}>{nameFor(s.fromUid)} → {nameFor(s.toUid)} <strong>{formatMoney(s.amount)}</strong></div>)}</details>}
 
-    <details className="disclosure settlement-advanced"><summary>進階結算設定</summary><RoundingPanel activity={activity} group={group} actorId={actorId} expenses={expenses} baseBalances={finalFinance.unroundedBalances||baseBalances} repaymentsStarted={settlements.some(s=>['pending','confirmed','disputed'].includes(s.status))} nameFor={nameFor} onUpdateActivity={onUpdateActivity}/></details>
+    <details className="disclosure settlement-advanced"><summary>進階結算設定</summary><RoundingPanel activity={activity} group={group} actorId={actorId} expenses={expenses} settlements={settlements} baseBalances={finalFinance.unroundedBalances||baseBalances} repaymentsStarted={settlements.some(s=>['pending','confirmed','disputed'].includes(s.status))} nameFor={nameFor} onUpdateActivity={onUpdateActivity}/></details>
     <button className="outline-button full" type="button" onClick={onAll}>查看所有人的結算</button>
 
     {showPlanEditor&&<SettlementPlanModal balances={finalFinance.projectedBalances} currentRows={activity.settlementManualTransfers||[]} nameFor={nameFor} onClose={()=>setShowPlanEditor(false)} onSave={savePlan}/>}

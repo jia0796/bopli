@@ -52,3 +52,28 @@ it('expense history shows who, time, and allocation changes without revision num
   expect(screen.getByText(/Friend 分攤：NT\$ 50 → NT\$ 60/)).toBeInTheDocument();
   expect(screen.queryByText(/第.*版/)).not.toBeInTheDocument();
 });
+
+it('round-up preview separates gross credit from own share and stays unchanged after locking',async()=>{
+  seed(false);
+  const data=JSON.parse(localStorage.getItem(STORAGE_KEY));
+  data.users.w={id:'w',nickname:'Third',accountName:'Third'};
+  data.groups[0].memberIds.push('w');data.groups[0].nicknames.w='Third';
+  data.activities[0].participantIds.push('w');
+  data.expenses=Array.from({length:3},(_,i)=>({...data.expenses[0],id:'e'+i,amount:100,participantIds:['u','v','w'],allocations:{u:33,v:34,w:33}}));
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  render(<App/>);
+  fireEvent.click(screen.getByText('Group'));fireEvent.click(screen.getByText('Trip'));
+  fireEvent.click(screen.getByRole('button',{name:'結算',exact:true}));
+  fireEvent.click(screen.getByText('進階結算設定'));
+  fireEvent.click(screen.getByRole('button',{name:/全員向上補齊/}));
+  const panel=document.querySelector('.rounding-panel');
+  expect(panel.querySelector('.rounding-extra')).toHaveTextContent('NT$ 6');
+  expect(panel.querySelector('.pool-preview')).toHaveTextContent('額外應收 +NT$ 6');
+  expect(panel.querySelector('.pool-preview')).toHaveTextContent('分攤補齊 +NT$ 3');
+  expect(panel.querySelector('.rounding-preview')).toHaveTextContent('應收 NT$ 201 → 應收 NT$ 204');
+  expect(panel.querySelector('.rounding-preview')).toHaveTextContent('應付 NT$ 99 → 應付 NT$ 102');
+  const before=panel.querySelector('.rounding-preview').textContent;
+  fireEvent.click(screen.getByRole('button',{name:'確認結算方案'}));
+  expect(document.querySelector('.rounding-preview').textContent).toBe(before);
+  await waitFor(()=>expect(JSON.parse(localStorage.getItem(STORAGE_KEY)).activities[0].roundingLockedAt).toBeTruthy());
+});

@@ -2,10 +2,10 @@ import { applyRepayments, buildSettlementPlan, calculateBalances } from './money
 import { applyRoundingToBalances, buildRoundingModel } from './rounding.js';
 
 /** One read model shared by activity screens, summaries, and deletion guards. */
-export function activityFinance(activity, expenses = [], settlements = []) {
+export function activityFinance(activity, expenses = [], settlements = [], roundingConfig) {
   const base = calculateBalances(activity.participantIds || [], expenses);
   const model = buildRoundingModel(activity.participantIds || [], expenses);
-  const config = activity.roundingLockedAt ? (activity.roundingConfig || {}) : { mode: 'current' };
+  const config = roundingConfig ?? (activity.roundingLockedAt ? (activity.roundingConfig || {}) : { mode: 'current' });
   // Rounding defines the debt before repayment validation, not after it.
   const rounded = applyRoundingToBalances(base, model, config);
   const balances = applyRepayments(rounded.balances, settlements);
