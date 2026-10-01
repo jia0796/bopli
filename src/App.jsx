@@ -110,16 +110,19 @@ function TestIdentityModal({ users, groups, actorId, primaryUserId, testIdentity
 
 function RemoveActivityMemberModal({ activity, expenses, targetUid, nameFor, hasRepayments, onClose, onConfirm }) {
   const related=expenses.filter((expense)=>(expense.allocations?.[targetUid]||0)>0);
+  const [mode,setMode]=useState('future');
   const [selected,setSelected]=useState([]);
   const toggle=(id)=>setSelected((prev)=>prev.includes(id)?prev.filter((x)=>x!==id):[...prev,id]);
-  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal remove-activity-modal"><div className="modal-top"><h2>移出 {nameFor(targetUid)}</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div>
-    <p className="muted small">{nameFor(targetUid)} 將不再參與之後的新支出。</p>
-    <div className="removal-meaning"><strong>哪些舊支出也要把 {nameFor(targetUid)} 的分攤移除？</strong><small>勾選＝不再計這個人的舊分攤；未勾選＝保留原本分攤。</small></div>
-    {hasRepayments&&<p className="field-hint"><LockKeyhole size={15}/>活動已有還款紀錄，為避免已開始的結算被改寫，目前只能移出活動並保留舊分攤。</p>}
-    <div className="picker-actions"><button type="button" disabled={hasRepayments} onClick={()=>setSelected(related.map((e)=>e.id))}>全選</button><button type="button" onClick={()=>setSelected([])}>清除選取</button></div>
-    <div className="remove-expense-list">{related.length===0?<p className="muted small">這位成員目前沒有既有分攤。</p>:related.map((expense)=><label className="remove-expense-row" key={expense.id}><input type="checkbox" checked={selected.includes(expense.id)} disabled={hasRepayments} onChange={()=>toggle(expense.id)}/><span><strong>{expense.title}</strong><small>{selected.includes(expense.id)?'將移除此人的舊分攤':'保留原本分攤'}</small></span><strong>{formatMoney(expense.allocations?.[targetUid]||0)}</strong></label>)}</div>
-    <p className="muted tiny-note">{nameFor(targetUid)} 過去的付款／墊付／找零紀錄不會被刪除。</p>
-    <button className="primary-button full" type="button" onClick={()=>onConfirm(selected)}>確認移出活動</button>
+  const choosePast=()=>{if(hasRepayments)return;setMode('past');setSelected(related.map((e)=>e.id));};
+  return <div className="modal-overlay" onMouseDown={(e)=>e.target===e.currentTarget&&onClose()}><section className="modal small-modal remove-activity-modal"><div className="modal-top"><h2>將 {nameFor(targetUid)} 移出活動</h2><button className="icon-button" type="button" onClick={onClose}><X size={20}/></button></div>
+    <p className="muted small">先選擇這次移出要影響哪些帳目。</p>
+    <div className="simple-choice-list">
+      <button type="button" className={mode==='future'?'selected':''} onClick={()=>{setMode('future');setSelected([]);}}><span className="radio-dot"/><span><strong>只影響之後的支出</strong><small>之前的分攤全部保留。建議大多數中途離開情況使用。</small></span></button>
+      <button type="button" disabled={hasRepayments} className={mode==='past'?'selected':''} onClick={choosePast}><span className="radio-dot"/><span><strong>連過去的支出一起調整</strong><small>{hasRepayments?'活動已有還款，不能改動過去分攤。':'下一步選擇哪些舊支出不再由此人分攤。'}</small></span></button>
+    </div>
+    {mode==='past'&&<><div className="picker-actions"><button type="button" onClick={()=>setSelected(related.map((e)=>e.id))}>全選</button><button type="button" onClick={()=>setSelected([])}>清除選取</button></div><div className="remove-expense-list">{related.length===0?<p className="muted small">這位成員目前沒有既有分攤。</p>:related.map((expense)=><label className="remove-expense-row" key={expense.id}><input type="checkbox" checked={selected.includes(expense.id)} onChange={()=>toggle(expense.id)}/><span><strong>{expense.title}</strong><small>{selected.includes(expense.id)?'移除此人的舊分攤':'保留原本分攤'}</small></span><strong>{formatMoney(expense.allocations?.[targetUid]||0)}</strong></label>)}</div></>}
+    <p className="muted tiny-note">過去的付款、墊付與還款紀錄不會被刪除。</p>
+    <button className="primary-button full" type="button" onClick={()=>onConfirm(mode==='past'?selected:[])}>確認移出活動</button>
   </section></div>;
 }
 
@@ -509,9 +512,9 @@ export default function App() {
 
     <main className="page-content">
       {screen==='home'&&<>
-        <div className="welcome"><h1>嗨，{accountName()}</h1><p>先看看今天有哪些帳目需要處理。</p></div>
-        {homeActions.length>0&&<section className="home-action-section"><div className="section-heading"><div><h2>需要處理</h2><p>待確認 → 我要付 → 我要收</p></div></div><div className="card-list">{homeActions.slice(0,showAllActions?homeActions.length:3).map((item)=><button key={item.activity.id} type="button" className="action-card click-card" onClick={()=>goActivity(item.activity.id,item.group.id)}><span className={`action-dot p${item.priority}`}/><span className="card-main"><strong>{item.group.name} · {item.activity.title}</strong><small>{item.label}</small></span><span className="action-amount">{formatMoney(item.amount)}</span><ChevronRight size={18}/></button>)}</div>{homeActions.length>3&&<button className="text-action-button home-more" type="button" onClick={()=>setShowAllActions((v)=>!v)}>{showAllActions?'收合':`查看另外 ${homeActions.length-3} 項待處理`}</button>}</section>}
-        <section><div className="section-heading"><div><h2>我的群組</h2><p>有待處理帳目的群組優先，其餘依最近使用排序</p></div></div>{sortedGroups.length===0?<EmptyState icon={UsersRound} title="還沒有群組" detail="建立固定朋友群組，再為每次聚餐或旅行建立活動。" action="建立群組" onAction={()=>setModal({kind:'createGroup'})}/>:<div className="card-list">{sortedGroups.slice(0,showAllGroups?sortedGroups.length:5).map((g)=>{const actionCount=homeActions.filter((x)=>x.group.id===g.id).length;return <button key={g.id} className="group-card click-card" type="button" onClick={()=>goGroup(g.id)}><span className="group-icon"><UsersRound size={22}/></span><span className="card-main"><strong>{g.name}</strong><small>{g.memberIds.length} 位朋友 · {actionCount?`${actionCount} 個活動待處理`:'目前無待處理'}</small></span><ChevronRight size={18}/></button>;})}</div>}{sortedGroups.length>5&&<button className="text-action-button home-more" type="button" onClick={()=>setShowAllGroups((v)=>!v)}>{showAllGroups?'收合':`查看其他 ${sortedGroups.length-5} 個群組`}</button>}<button className="outline-button full create-bottom" type="button" onClick={()=>setModal({kind:'createGroup'})}><Plus size={17}/>建立群組</button></section>
+        <div className="welcome"><h1>嗨，{accountName()}</h1><p>{homeActions.length?'你有帳目需要處理。':'目前沒有需要處理的帳目。'}</p></div>
+        {homeActions.length>0&&<section className="home-action-section"><div className="section-heading"><div><h2>需要你處理</h2><p>先完成最重要的付款與確認。</p></div></div><div className="card-list">{homeActions.slice(0,showAllActions?homeActions.length:3).map((item)=><button key={item.activity.id} type="button" className="action-card click-card" onClick={()=>goActivity(item.activity.id,item.group.id)}><span className={`action-dot p${item.priority}`}/><span className="card-main"><strong>{item.activity.title}</strong><small>{item.group.name} · {item.label}</small></span><span className="action-amount">{formatMoney(item.amount)}</span><span className="action-go">處理</span></button>)}</div>{homeActions.length>3&&<button className="text-action-button home-more" type="button" onClick={()=>setShowAllActions((v)=>!v)}>{showAllActions?'收合':`查看另外 ${homeActions.length-3} 項待處理`}</button>}</section>}
+        <section><div className="section-heading"><div><h2>我的群組</h2><p>點進群組查看活動。</p></div></div>{sortedGroups.length===0?<EmptyState icon={UsersRound} title="還沒有群組" detail="建立固定朋友群組，再為每次聚餐或旅行建立活動。" action="建立群組" onAction={()=>setModal({kind:'createGroup'})}/>:<div className="card-list">{sortedGroups.slice(0,showAllGroups?sortedGroups.length:5).map((g)=>{const actionCount=homeActions.filter((x)=>x.group.id===g.id).length;return <button key={g.id} className="group-card click-card" type="button" onClick={()=>goGroup(g.id)}><span className="group-icon"><UsersRound size={22}/></span><span className="card-main"><strong>{g.name}</strong><small>{g.memberIds.length} 人 · {actionCount?`${actionCount} 件待處理`:'沒有待處理'}</small></span><ChevronRight size={18}/></button>;})}</div>}{sortedGroups.length>5&&<button className="text-action-button home-more" type="button" onClick={()=>setShowAllGroups((v)=>!v)}>{showAllGroups?'收合':`查看其他 ${sortedGroups.length-5} 個群組`}</button>}<button className="outline-button full create-bottom" type="button" onClick={()=>setModal({kind:'createGroup'})}><Plus size={17}/>建立群組</button></section>
         <button className="demo-link" type="button" onClick={loadCostcoDemo}>載入 17 人好市多示範帳本</button>
       </>}
 
@@ -544,7 +547,7 @@ export default function App() {
       </>}
     </main>
 
-    {screen==='activity'&&activity&&<nav className="activity-bottom-nav" aria-label="活動導覽">{[['expenses',ReceiptText,'支出'],['ledger',UsersRound,'成員帳目'],['settlements',Wallet,'結算']].map(([id,Icon,label])=><button key={id} type="button" className={tab===id?'selected':''} onClick={()=>setTab(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>}
+    {screen==='activity'&&activity&&<nav className="activity-bottom-nav" aria-label="活動導覽">{[['expenses',ReceiptText,'帳目'],['ledger',UsersRound,'成員'],['settlements',Wallet,'結算']].map(([id,Icon,label])=><button key={id} type="button" className={tab===id?'selected':''} onClick={()=>setTab(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>}
 
     {toast&&<div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
     {successFlash&&<SuccessFlash text={successFlash}/>} 
