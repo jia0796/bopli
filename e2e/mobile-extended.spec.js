@@ -38,7 +38,7 @@ async function addSimpleExpense(page, title, amount) {
   await page.getByLabel('支出名稱').fill(title);
   await page.locator('.simple-payment-block input[inputmode="numeric"]').fill(String(amount));
   await page.getByRole('button', { name: '儲存支出' }).click();
-  await expect(page.getByText(title)).toBeVisible();
+  await expect(page.getByRole('button', { name: new RegExp(`查看 ${title} NT\\$ ${amount}`) })).toBeVisible();
 }
 
 async function goHomeFromActivity(page) {
@@ -118,7 +118,7 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     // Owner promotes member to deputy.
     await page.locator('.member-list-card .swipe-content').filter({hasText:'副手'}).click();
     await page.getByRole('button', { name: '設為副群主' }).click();
-    await expect(page.getByText('副群主')).toBeVisible();
+    await expect(page.getByText('副群主', { exact: true })).toBeVisible();
 
     // Add deputy as a switchable identity and verify owner-only danger action is hidden.
     await page.getByRole('button', { name: '切換' }).click();
@@ -151,7 +151,9 @@ test.describe('Bopli 2.3 mobile extended journeys', () => {
     const original=Array.from({length:13},(_,i)=>`U${String(i+2).padStart(2,'0')}`);
     await addTestMembers(page, original);
     await createActivity(page, '巴黎行程');
-    await expect(page.getByText(/14 人/)).toBeVisible();
+    await page.getByRole('button', { name: '活動設定' }).click();
+    await expect(page.getByRole('button', { name: /一起分帳的人/ })).toContainText('14 人');
+    await page.getByRole('button', { name: /活動/ }).first().click();
     await addSimpleExpense(page, '巴黎晚餐', 1400);
 
     // Mid-trip add one member and keep old expense unchanged.
