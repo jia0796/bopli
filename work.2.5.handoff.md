@@ -93,7 +93,9 @@ src/styles.css
 - 當前 snapshot 失效。
 - 結算按鈕恢復可按。
 - 關閉新的還款入口。
-- 已有 pending/confirmed 不得消失或重算改道。
+- 已有 pending/disputed/confirmed 不得消失或重算改道。
+- 只禁止建立新的 repayment；既有 pending 的確認／爭議處理仍必須可操作。
+- 手動結算路線、尾差等任何會改變 settlement result 的操作，也要使 snapshot dirty。
 
 ---
 
@@ -114,7 +116,7 @@ expense was once included in a gray settlement state => permanent lock
 正確規則：
 
 - 沒有相關 repayment：仍可編輯。
-- 有與該支出相關的 pending/confirmed repayment：不可編輯／刪除。
+- 有與該支出相關的 pending/disputed/confirmed repayment：不可編輯／刪除。
 - 關聯依 settlement snapshot/accounting basis 判斷。
 - 若支出對 repayment 的 payer 或 recipient 淨額有非零影響，視為相關。
 - 完全不影響該 repayment parties 淨額的支出不應被誤鎖。
@@ -130,6 +132,8 @@ C 欠 A 300
 第二筆雖沒有 B，仍影響 A 淨額，必須受保護。
 
 處理 disputed/cancelled 時，只有在沒有其他 repayment 仍引用該 accounting basis 時才可解除該來源的 lock；audit 仍保留。
+
+對「目前與舊 repayment 無關」且仍可編輯的 expense，儲存修改前必須重新驗證歷史 repayment invariants。若修改會造成既有 pending/disputed/confirmed overpay、負 remaining balance 或其他不一致，阻擋直接修改，要求用 adjustment/correction expense。
 
 ---
 
@@ -228,7 +232,10 @@ Cayden   NT$500
 - 顯示「已選擇 x / y 張」。
 - 0 張時分享 disabled。
 - 按「分享」只輸出 selected PNG。
-- 使用 Web Share / 系統 share sheet；不支援時提供合理 fallback，但不要另做公開 URL。
+- 優先使用 Web Share / 系統 share sheet 傳送 selected PNG files。
+- 若瀏覽器不支援多檔分享，fallback 為下載 selected PNG。
+- 不保證不同 OS 出現相同「儲存頁面」；不要把特定原生 UI 寫死。
+- 不支援時不要另做公開 URL。
 
 預覽不是 editor。
 
@@ -267,6 +274,8 @@ Cayden   NT$500
 
 並禁止儲存。
 
+2.4 legacy data 若已有 >14 units 的名稱，不可在 migration 自動截斷；只有新建／再次修改時強制新規則。
+
 ---
 
 ## 12. 金額限制
@@ -287,7 +296,7 @@ Cayden   NT$500
 超過金額上限
 ```
 
-儲存/domain 層仍再次驗證。
+儲存/domain 層仍再次驗證。限制的是單筆 expense 最終總額；任何能直接設定或推導該總額的輸入流程都要遵守。
 
 ---
 
@@ -351,11 +360,14 @@ Cayden   NT$500
 - paste overflow rejected
 - share pagination 8 rows
 - share pagination with multiple receiver headers
+- native multi-file share unsupported -> download fallback
 - ellipsis width handling
 
 ### mobile E2E
 
 - settle button active -> gray -> repayment enabled
+- gray state has text/status cue, not color-only
+- snapshot dirty blocks only new repayment; existing pending remains confirmable
 - add/edit expense -> active again -> repayment disabled
 - re-settle -> enabled
 - share personal
