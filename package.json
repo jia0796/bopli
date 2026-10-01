@@ -1,7 +1,7 @@
 {
-  "name": "bopli-test-2-3",
+  "name": "bopli-test-2-4",
   "private": true,
-  "version": "2.3.0-test",
+  "version": "2.4.0-test",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
