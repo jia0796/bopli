@@ -40,28 +40,33 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await expect(page.getByText('目前已結清')).toBeVisible();
   });
 
-  test('群主可加入測試成員；活動成員新增預設不改過去支出', async ({ page }) => {
+  test('群主可在活動進行中加入新群組成員，預設不改過去支出', async ({ page }) => {
     await onboard(page, 'Owner');
 
     await page.getByRole('button', { name: /建立群組/ }).first().click();
     await page.getByLabel('群組名稱').fill('朋友旅行');
     await page.getByRole('button', { name: '建立群組' }).last().click();
 
+    // 先建立只有群主的活動，之後才新增群組成員，模擬真正的中途加入。
+    await page.getByRole('button', { name: /建立活動/ }).first().click();
+    await page.getByLabel('活動名稱').fill('第一天');
+    await page.getByRole('button', { name: '建立活動' }).last().click();
+    await expect(page.getByText('還沒有支出')).toBeVisible();
+
+    // 回群組新增成員；既有活動不應自動加入。
+    await page.locator('.activity-topbar .icon-button').first().click();
     await page.getByRole('button', { name: '群組設定' }).click();
     await page.getByRole('button', { name: /成員/ }).click();
     await page.getByRole('button', { name: /新增測試成員/ }).click();
     await page.getByLabel('成員暱稱').fill('小安\n阿哲');
     await page.getByRole('button', { name: /新增 2 位測試成員/ }).click();
-
     await expect(page.getByText('小安')).toBeVisible();
     await expect(page.getByText('阿哲')).toBeVisible();
 
+    // 回到活動，把其中一位新群組成員從「現在開始」加入。
     await page.getByRole('button', { name: /群組設定/ }).first().click();
     await page.getByRole('button', { name: /群組/ }).first().click();
-    await page.getByRole('button', { name: /建立活動/ }).first().click();
-    await page.getByLabel('活動名稱').fill('第一天');
-    await page.getByRole('button', { name: '建立活動' }).last().click();
-
+    await page.getByRole('button', { name: /第一天/ }).click();
     await page.getByRole('button', { name: '活動設定' }).click();
     await page.getByRole('button', { name: /一起分帳的人/ }).click();
     await page.getByRole('button', { name: /加入/ }).first().click();
