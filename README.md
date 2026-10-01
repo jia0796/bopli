@@ -1,6 +1,6 @@
 # bopli_test.2.2｜朋友分帳管家
 
-目前版本：**bopli_test.2.2**
+目前版本：**bopli_test.2.3**
 
 版本命名：
 - `bopli_1.X.X`：未來正式版
@@ -9,12 +9,15 @@
 GitHub Pages：
 - https://jia0796.github.io/bopli/
 
-完整使用說明：
+版本規劃：
+- [ROADMAP_2.3.md](./ROADMAP_2.3.md)
+
+2.2 使用說明仍保留：
 - [TEST_GUIDE_2.2.md](./TEST_GUIDE_2.2.md)
 
-## test.2.2 重點
+## test.2.3 重點
 
-- 這次版本做一次性本機資料重置；之後版本預設保留資料。
+- **2.3 不刪除既有資料**：第一次啟動會將可用的 2.2 localStorage 複製遷移至 2.3 key，舊 key 保留不動。
 - 測試身分清單初始為空，必須手動加入要模擬的成員。
 - 可切換群主／副群主／一般成員／已退出歷史成員視角。
 - 目前活動成員與歷史帳務參與者分離。
@@ -65,3 +68,12 @@ npm run build
 - 歷史付款紀錄不可因成員退出而消失。
 - 已開始還款的活動會保護既有帳務，避免直接重算或刪除。
 - 完整結算尾差只有群主／副群主能決定。
+
+
+## 2.3 工程優化
+
+- `src/App.jsx` 已開始拆分：共用 UI primitives 與次要畫面移至 `src/components/`。
+- 新增集中版本常數 `src/version.js`，避免 package、UI 與資料 schema 各自漂移。
+- 保留原有 Node `node:test` 核心帳務測試，新增 Vitest + Testing Library UI 測試。
+- 新增 localStorage 2.2 → 2.3 非破壞式 migration 測試。
+- 新增 `bopli_test.2.3` 分支專用 CI：domain tests + UI tests + build。
