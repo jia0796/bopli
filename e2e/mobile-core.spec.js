@@ -9,7 +9,7 @@ async function onboard(page, name='Cayden') {
   await expect(page.getByText(`嗨，${name}`)).toBeVisible();
 }
 
-test.describe('Bopli 2.3 mobile core journey', () => {
+test.describe('Bopli 2.4 mobile core journey', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
   });
@@ -28,7 +28,7 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: '建立活動' }).last().click();
 
     await expect(page.getByText('巴黎')).toBeVisible();
-    await expect(page.getByText('還沒有支出')).toBeVisible();
+    await expect(page.getByText('尚未開始記帳')).toBeVisible();
     await page.getByRole('button', { name: /記一筆/ }).click();
     await page.getByLabel('支出名稱').fill('晚餐');
     await page.locator('.simple-payment-block input[inputmode="numeric"]').fill('1200');
@@ -51,7 +51,7 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: /建立活動/ }).first().click();
     await page.getByLabel('活動名稱').fill('第一天');
     await page.getByRole('button', { name: '建立活動' }).last().click();
-    await expect(page.getByText('還沒有支出')).toBeVisible();
+    await expect(page.getByText('尚未開始記帳')).toBeVisible();
 
     // 先建立一筆舊支出，確保新成員加入時需要明確決定是否影響過去帳目。
     await page.getByRole('button', { name: /記一筆/ }).click();
@@ -75,7 +75,7 @@ test.describe('Bopli 2.3 mobile core journey', () => {
     await page.getByRole('button', { name: /群組/ }).first().click();
     await page.getByRole('button', { name: /第一天/ }).click();
     await page.getByRole('button', { name: '活動設定' }).click();
-    await page.getByRole('button', { name: /一起分帳的人/ }).click();
+    await page.getByRole('button', { name: /活動成員/ }).click();
     await page.getByRole('button', { name: /加入/ }).first().click();
     await expect(page.getByText('從現在開始')).toBeVisible();
     await page.getByRole('button', { name: '確認加入' }).click();
