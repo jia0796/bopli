@@ -1,12 +1,13 @@
+import { DEFAULT_AVATAR,avatarFor } from './avatars.js';
 import { assertName } from './inputRules.js';
 import { splitEqual } from './money.js';
 import { EDIT_POLICY } from './domain.js';
 
 import { STORE_SCHEMA_VERSION } from '../version.js';
 
-export const STORAGE_KEY = 'bopli-test-2.5-v1';
-export const LEGACY_STORAGE_KEYS = ['bopli-test-2.4-v1', 'bopli-test-2.3-v1', 'bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
-export const RESET_MARKER_KEY = 'bopli-test-2.5-reset-once-20261001';
+export const STORAGE_KEY = 'bopli-test-2.6-v1';
+export const LEGACY_STORAGE_KEYS = ['bopli-test-2.5-v1', 'bopli-test-2.4-v1', 'bopli-test-2.3-v1', 'bopli-test-2.2-v1', 'bopli-2.1.1-v1', 'bopli-2.1-v1'];
+export const RESET_MARKER_KEY = 'bopli-test-2.6-reset-once-20261002';
 export const now = () => new Date().toISOString();
 export const makeId = () => globalThis.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -64,6 +65,7 @@ export function migrateStore(item) {
       ...(item.account || {}),
       testIdentityIds: Array.isArray(item.account?.testIdentityIds) ? item.account.testIdentityIds : [],
     },
+    users: Object.fromEntries(Object.entries(item.users).map(([id,user])=>[id,{...user,avatarId:avatarFor(user.avatarId).id}])),
     groups: item.groups.map(normalizeGroup),
     activities: item.activities.map(normalizeActivity),
     drafts: Array.isArray(item.drafts) ? item.drafts : [],
@@ -82,15 +84,15 @@ function readStoreKey(key) {
 }
 
 export function loadStore() {
-  // User-requested one-time reset for bopli_test.2.5. The marker prevents
-  // refreshes from wiping newly created 2.5 data again.
+  // User-requested one-time reset for bopli_test.2.6. The marker prevents
+  // refreshes from wiping newly created 2.6 data again.
   const resetDone = localStorage.getItem(RESET_MARKER_KEY) === '1';
   if (!resetDone) {
     for (const key of LEGACY_STORAGE_KEYS) {
       try { localStorage.removeItem(key); } catch { /* best effort */ }
     }
     try { localStorage.setItem(RESET_MARKER_KEY, '1'); } catch { /* persistence layer reports future writes */ }
-    // Preserve already-created 2.5 data even when the marker was missing.
+    // Preserve already-created 2.6 data even when the marker was missing.
   }
 
   const current = readStoreKey(STORAGE_KEY);
@@ -123,12 +125,12 @@ export function createGuestStore(accountName, withDemo = false) {
   const me = makeId();
   data.currentUserId = me;
   data.account.primaryUserId = me;
-  data.users[me] = { id: me, nickname: accountName.trim(), accountName: accountName.trim(), isGuest: true, createdAt: now() };
+  data.users[me] = { id: me, avatarId: DEFAULT_AVATAR, nickname: accountName.trim(), accountName: accountName.trim(), isGuest: true, createdAt: now() };
   if (!withDemo) return data;
 
   const pals = ['小安', '阿哲', '小羽'].map((name) => {
     const id = makeId();
-    data.users[id] = { id, nickname: name, accountName: name, isGuest: true, createdAt: now(), isDemo: true };
+    data.users[id] = { id, nickname: name, avatarId: DEFAULT_AVATAR, accountName: name, isGuest: true, createdAt: now(), isDemo: true };
     return id;
   });
   const groupId = makeId();

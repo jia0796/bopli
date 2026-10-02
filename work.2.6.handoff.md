@@ -29,7 +29,7 @@ project.md
 - 以目前 main / 2.5 實際程式狀態為基礎。
 - 不因版本升級重寫帳務核心。
 - 不新增 Google/Firebase、自訂網域或照片上傳。
-- 不新增 reset-on-upgrade；2.6 應保留既有資料並以 migration 處理 schema。
+- 原預設保留資料；本次使用者明確要求清除 2.5（含）以前資料，優先採一次性清除，保留 2.6 與無關資料。其餘 schema 以前向 migration 處理。
 - 既有 settlement snapshot、pending/disputed/confirmed、manual route 與歷史帳務 invariant 必須維持。
 
 ---

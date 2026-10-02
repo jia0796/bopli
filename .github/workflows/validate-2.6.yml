@@ -1,9 +1,15 @@
-name: Validate bopli_test.2.3
+name: Validate bopli_test.2.6
 
 on:
   push:
-    branches: [bopli_test.2.3]
+    branches: [bopli_test.2.6]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: validate-2.6-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -48,7 +54,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-e2e-report
+          name: mobile-e2e-report-2.6
           path: |
             playwright-report
             test-results
