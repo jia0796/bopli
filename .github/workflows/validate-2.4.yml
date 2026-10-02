@@ -3,8 +3,6 @@ name: Validate bopli_test.2.4
 on:
   push:
     branches: [bopli_test.2.4]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

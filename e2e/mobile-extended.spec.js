@@ -56,7 +56,7 @@ async function addSwitchableIdentityAndSwitch(page, name) {
   await expect(page.locator('.test-version-strip')).toContainText(`測試身分：${name}`);
 }
 
-test.describe('Bopli 2.5 mobile extended journeys', () => {
+test.describe('Bopli 2.6 mobile extended journeys', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.clear());
   });

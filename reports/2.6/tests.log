@@ -1,0 +1,163 @@
+
+> bopli-test-2-6@2.6.0-test test
+> npm run test:unit && npm run test:stress && npm run test:ui
+
+
+> bopli-test-2-6@2.6.0-test test:unit
+> node --test src/lib/domain.test.js src/lib/ledger.test.js src/lib/lifecycle.test.js src/lib/money.test.js src/lib/rounding.test.js src/lib/selectors.test.js src/lib/workflow.test.js src/lib/activityFinance.test.js src/lib/settlementBatch.test.js src/lib/inputRules.test.js src/lib/settlementShare.test.js src/lib/avatars.test.js
+
+✔ activity status is global: empty, pending, disputed, outstanding, and settled (2.130441ms)
+✔ partial pending payment reserves 300, leaving precisely 700 on both sides (6.177249ms)
+✔ confirmation order cannot invalidate other pending reservations (2.71284ms)
+✔ disputed payments stay reserved until the same payment is resubmitted and confirmed (0.978697ms)
+✔ reserved and confirmed payments together cannot exceed the actual debt (43.424739ms)
+✔ consumed manual route keeps its exact remaining amount across confirmation (2.534778ms)
+✔ locked tail adjustment is applied before validating repayments and deletion (1.210078ms)
+✔ historical member ledger keeps advanced, share, and balance after leaving (0.272836ms)
+✔ manual and automatic transfers remain stable, direct, and precisely balanced (1.37261ms)
+✔ edit history describes changed payment and allocation even when title and total stay fixed (2.183332ms)
+✔ locked rounding preview and member ledger use the same adjusted balance (0.346522ms)
+✔ round-up extra credit is included in member ledger and balances (0.5029ms)
+✔ round-up preview, locked ledger and repayments share the same allocation source (0.377476ms)
+✔ avatar preserves identity and every finance/history reference (2.151868ms)
+✔ missing/unknown avatar safely uses default (0.280035ms)
+✔ 預設只有記帳人可編輯，群組管理員不自動代改 (1.425027ms)
+✔ 全部成員開放後可改，非成員仍不得改 (0.218193ms)
+✔ 有待確認或已確認還款時封鎖修改 (0.31733ms)
+✔ 權限開關限建立者修改並留下紀錄 (1.806247ms)
+✔ 更新支出保留修改前後快照，不覆蓋歷史 (0.542158ms)
+✔ 副群主最多三位且只有群主可指派 (0.771185ms)
+✔ 14 display units boundary and trim (21.756603ms)
+✔ grapheme emoji, flags, fullwidth and combining marks (0.334969ms)
+✔ expense limit allows exactly billion but rejects keyboard or paste overflow (0.578262ms)
+✔ 17 人購物單：7000 元，三人付款，私人商品與酒各自分攤 (28.11016ms)
+✔ 找零算在收款人的實際墊付；與分攤及還款分開 (1.016719ms)
+✔ 舊版單付款支出可直接顯示帳目 (0.331381ms)
+✔ 重複載入範例不新增第二本帳 (0.962101ms)
+✔ 付款與找零不平衡的支出不得進入結算 (1.066425ms)
+✔ 只有群主可永久刪除活動與群組，副群主也不可 (5.151733ms)
+✔ 活動有未結清餘額時禁止刪除 (10.71457ms)
+✔ pending 或 disputed 還款存在時禁止刪除 (0.244926ms)
+✔ 帳務已完全結清時允許刪除活動 (0.511122ms)
+✔ 活動級聯刪除只移除該活動資料 (1.455187ms)
+✔ 群組刪除保留其他群組與 users，不跨群組誤刪 (0.444755ms)
+✔ 群組內任一活動未結清時禁止永久刪除群組 (0.705441ms)
+✔ 平均分攤餘數固定分配，總和不變 (1.979872ms)
+✔ 指定參與者只有選中者負擔 (6.849769ms)
+✔ 自訂金額精確加總 (1.167725ms)
+✔ 自訂金額不平衡會拒絕 (29.840293ms)
+✔ 比例分攤：1:2:3 (0.613208ms)
+✔ 比例分攤支援兩位小數且整數安全 (0.252885ms)
+✔ 比例不合法會拒絕 (0.32405ms)
+✔ 金額必須為安全正整數 (0.214596ms)
+✔ 參與者不能重複 (0.23047ms)
+✔ 不合法模式拒絕 (0.586717ms)
+✔ 確認還款更新淨額，待確認不更新正式餘額 (1.223889ms)
+✔ 轉帳建議總額與欠款相同 (0.499863ms)
+✔ 所有人結清後沒有建議 (0.125276ms)
+✔ 不平衡餘額拒絕轉帳建議 (0.383084ms)
+✔ 還款金額必須為正的安全整數 (0.704896ms)
+✔ 禁止自己還自己 (2.91124ms)
+✔ 禁止超額還款 (0.342418ms)
+✔ 禁止重複 settlement id (0.372849ms)
+✔ 合法部分還款可連續確認直到結清 (0.430677ms)
+✔ 手動指定部分後系統只自動分配剩餘金額 (1.992031ms)
+✔ 手動分帳不可超過付款人應付或收款人應收 (0.54086ms)
+✔ 手動分帳禁止中繼與重複路線 (0.303899ms)
+✔ 餘額因部分付款改變時可安全縮減舊手動方案 (0.139613ms)
+✔ 平均分攤尾差可依 offset 輪流 +1 (2.749896ms)
+✔ 完整結算可重新指定必要尾差承擔者，總額仍平衡 (0.911899ms)
+✔ 全員向上補齊的多出金額平均分給仍應收者 (9.260598ms)
+✔ round-up ceils the cumulative original share, never each expense or net balance (0.658482ms)
+✔ fixed allocations and rows involving exited members remain unchanged (0.470602ms)
+✔ round-up pool equals allocation increases and distributed credits across rotating splits (22.555619ms)
+✔ 4000 plus 2000 across 15 people backfills each expense to exactly 400 per person (2.075ms)
+✔ 400.8 cumulative share gives twelve 401 and three 400; round-up gives all 401 (1.525064ms)
+✔ overlapping groups balance cumulative shares while each expense and custom share stay intact (1.235199ms)
+✔ backfilled shopping allocations agree with line sums and frozen repayment history is untouched (0.954652ms)
+✔ varying overlapping equal splits preserve every row and cumulative floor/ceil bounds (45.561459ms)
+✔ store indexes group activities, expenses and settlements without cross-contamination (2.684899ms)
+✔ missing index keys return a stable empty result shape (0.297632ms)
+✔ snapshot stable until expense, name, routes, rounding or members change (20.616012ms)
+✔ snapshot without repayments never permanently locks an expense (0.399664ms)
+✔ A owes B 500 and C owes A 300: both receipts protect A to B 200, unrelated C/D does not (1.296983ms)
+✔ cancelled source unlocks only if no other active repayment still references it (0.39899ms)
+✔ unrelated edit that starts affecting repayment parties must preserve historical overpay invariants (15.634069ms)
+✔ 8 rows hard ceiling, repeated title, fixed page height (4.182801ms)
+✔ multiple receiver headers cause early pagination (0.287613ms)
+✔ pending is separate from unpaid, confirmed excluded, personal/other share same model (25.611096ms)
+✔ rendered width ellipsis preserves complete graphemes (1.824036ms)
+✔ native multi-file unsupported downloads only selected files; native cancel never downloads (0.558339ms)
+✔ PNG export is 1500×2100, main amount strongest, row amounts right aligned (2.43623ms)
+✔ 完整示範流程：群組分帳 → 開放共同編輯 → 留存稽核 → 建立待確認還款 (48.255899ms)
+ℹ tests 84
+ℹ suites 0
+ℹ pass 84
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 846.238011
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+> bopli-test-2-6@2.6.0-test test:stress
+> node --test src/lib/stress.test.js
+
+STRESS_STORE_BYTES=12100490
+✔ STRESS 14人旅行：300筆支出，中途+1、退出2人，歷史帳務保持平衡 (292.860646ms)
+✔ STRESS 兩個群組各500筆：各自帳務平衡且結果互不改變 (226.784994ms)
+✔ STRESS 尾差：3~60人、200輪不同金額都維持總額平衡 (156.459644ms)
+✔ STRESS 大額與大量成員：1,000,000,000 元 / 1000人 (16.007436ms)
+✔ DIAGNOSTIC: 負數 confirmed settlement 應被拒絕 (0.881152ms)
+✔ DIAGNOSTIC: 小數 confirmed settlement 應被拒絕 (0.356653ms)
+✔ DIAGNOSTIC: 自己還款給自己應被拒絕 (0.37744ms)
+✔ STRESS 100 seeds × 1000筆：隨機帳本持續平衡 (3106.841291ms)
+✔ DIAGNOSTIC: NaN confirmed settlement 應被拒絕 (0.537185ms)
+✔ DIAGNOSTIC: Infinity confirmed settlement 應被拒絕 (0.534458ms)
+✔ DIAGNOSTIC: 超額還款應直接拒絕，不可把債權債務反轉 (9.832173ms)
+✔ DIAGNOSTIC: 重複 settlement id 應直接拒絕 (0.291575ms)
+✔ STRESS localStorage 容量估算：大型帳本序列化體積 (253.688529ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4379.301385
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+> bopli-test-2-6@2.6.0-test test:ui
+> vitest run src/components/*.test.jsx src/lib/store.migration.test.js src/lib/useStorePersistence.test.jsx
+
+
+ RUN  v5.0.3 /workspace/bopli
+
+
+ Test Files  7 passed (7)
+      Tests  27 passed (27)
+   Start at  01:50:13
+   Duration  3.74s (environment 46%, tests 18%, transform 17%, import 14%, setup 5%)
+
+Environment  jsdom was created 7 times · 4.24s total, 46% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

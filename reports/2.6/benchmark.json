@@ -1,0 +1,50 @@
+[
+  {
+    "members": 15,
+    "expenses": 1000,
+    "round": 1,
+    "snapshotMs": 35,
+    "signatureMs": 2,
+    "snapshotBytes": 486975
+  },
+  {
+    "members": 15,
+    "expenses": 1000,
+    "round": 2,
+    "snapshotMs": 7,
+    "signatureMs": 1,
+    "snapshotBytes": 486975
+  },
+  {
+    "members": 15,
+    "expenses": 1000,
+    "round": 3,
+    "snapshotMs": 7,
+    "signatureMs": 1,
+    "snapshotBytes": 486975
+  },
+  {
+    "members": 1000,
+    "expenses": 1000,
+    "round": 1,
+    "snapshotMs": 1991,
+    "signatureMs": 56,
+    "snapshotBytes": 20952716
+  },
+  {
+    "members": 1000,
+    "expenses": 1000,
+    "round": 2,
+    "snapshotMs": 1931,
+    "signatureMs": 49,
+    "snapshotBytes": 20952716
+  },
+  {
+    "members": 1000,
+    "expenses": 1000,
+    "round": 3,
+    "snapshotMs": 1626,
+    "signatureMs": 51,
+    "snapshotBytes": 20952716
+  }
+]

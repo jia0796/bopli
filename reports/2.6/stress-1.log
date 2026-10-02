@@ -1,0 +1,31 @@
+
+> bopli-test-2-6@2.6.0-test test:stress
+> node --test src/lib/stress.test.js
+
+STRESS_STORE_BYTES=12100490
+✔ STRESS 14人旅行：300筆支出，中途+1、退出2人，歷史帳務保持平衡 (214.405521ms)
+✔ STRESS 兩個群組各500筆：各自帳務平衡且結果互不改變 (151.320327ms)
+✔ STRESS 尾差：3~60人、200輪不同金額都維持總額平衡 (169.399953ms)
+✔ STRESS 大額與大量成員：1,000,000,000 元 / 1000人 (13.44574ms)
+✔ DIAGNOSTIC: 負數 confirmed settlement 應被拒絕 (0.960567ms)
+✔ DIAGNOSTIC: 小數 confirmed settlement 應被拒絕 (0.741027ms)
+✔ DIAGNOSTIC: 自己還款給自己應被拒絕 (0.302357ms)
+✔ STRESS 100 seeds × 1000筆：隨機帳本持續平衡 (4209.656833ms)
+✔ DIAGNOSTIC: NaN confirmed settlement 應被拒絕 (1.178334ms)
+✔ DIAGNOSTIC: Infinity confirmed settlement 應被拒絕 (0.425851ms)
+✔ DIAGNOSTIC: 超額還款應直接拒絕，不可把債權債務反轉 (19.102819ms)
+✔ DIAGNOSTIC: 重複 settlement id 應直接拒絕 (26.592474ms)
+✔ STRESS localStorage 容量估算：大型帳本序列化體積 (505.233181ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5465.655052
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

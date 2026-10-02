@@ -8,6 +8,8 @@ import {
   Pencil, Plus, ReceiptText, Search, Settings2, ShieldCheck, Shuffle, Sparkles, UserRound,
   UserRoundPlus, UsersRound, Wallet, X,
 } from 'lucide-react';
+import BopliAvatar from './components/BopliAvatar.jsx';
+import { selectAvatar } from './lib/avatars.js';
 import { BrandLockup } from './components/Brand.jsx';
 import { ExpenseSummary, ExpenseDetail } from './components/ExpenseViews.jsx';
 import MemberLedger, { BalanceBars } from './components/MemberLedger.jsx';
@@ -686,7 +688,7 @@ export default function App() {
   const canInvite=Boolean(group&&(isOwner(group,actorId)||group.allowMemberInvites));
   const canManage=Boolean(group&&canManageActivity(group,actorId));
 
-  const pageHeader = (showBrand=true) => <header className="app-header">{showBrand?<button className="brand-button" type="button" onClick={goHome}><BrandLockup compact/></button>:<span/>}<div className="header-actions"><button className="header-icon" type="button" aria-label="通知" onClick={openNotifications}><Bell size={20}/>{actionableCount>0&&<span className="notification-badge">{actionableCount>9?'9+':actionableCount}</span>}</button><button className="avatar-button" type="button" aria-label="我的" onClick={()=>setScreen('profile')}>{initials(accountName())}</button></div></header>;
+  const pageHeader = (showBrand=true) => <header className="app-header">{showBrand?<button className="brand-button" type="button" onClick={goHome}><BrandLockup compact/></button>:<span/>}<div className="header-actions"><button className="header-icon" type="button" aria-label="通知" onClick={openNotifications}><Bell size={20}/>{actionableCount>0&&<span className="notification-badge">{actionableCount>9?'9+':actionableCount}</span>}</button><button className="avatar-button" type="button" aria-label="我的" onClick={()=>setScreen('profile')}><BopliAvatar avatarId={actor.avatarId} size={38}/></button></div></header>;
 
   return <div className={`app-shell ${screen==='activity'?'has-activity-nav':''}`}><div className="test-version-strip"><span>{APP_LABEL} · 測試身分：<strong>{accountName()}</strong></span><button type="button" onClick={()=>setModal({kind:'switchIdentity'})}>切換</button></div>
     {storageError&&<div className="info-card storage-error-banner" role="alert"><CircleAlert size={18}/><p><strong>資料尚未安全儲存</strong><br/>{storageError}<br/>請先不要重新整理或關閉此頁。</p></div>}
@@ -703,7 +705,7 @@ export default function App() {
 
       {screen==='notifications'&&<NotificationScreen items={notificationItems} readKeys={readKeys} onRead={markNotificationRead} onBack={goHome} onOpen={(item)=>{setNavigationOrigin('notifications');setGroupId(item.groupId);setActivityId(item.activityId);if(item.target==='activityAudit'){setScreen('activitySettings');}else{setTab(item.target==='settlement'?'settlements':'expenses');setScreen('activity');}}}/>}
 
-      {screen==='profile'&&<ProfileScreen actor={actor} account={data.account} groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&!g.archived)} nameFor={(id,g)=>nameFor(id,g)} actorId={actorId} primaryUserId={primaryUserId} onBack={goHome} onEditAccountName={()=>setModal({kind:'accountName'})} onArchived={()=>setScreen('archivedGroups')} onConnectGoogle={()=>{setData((prev)=>({...prev,account:{...prev.account,googleLinked:true}}));setSuccessFlash('Google 帳號已連結');}} onOpenGroupNickname={(gid)=>{setGroupId(gid);setScreen('memberDetail');setModal({kind:'memberDetailTarget',targetUid:actorId});}} onSwitchIdentity={()=>setModal({kind:'switchIdentity'})}/>} 
+      {screen==='profile'&&<ProfileScreen actor={actor} account={data.account} groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&!g.archived)} nameFor={(id,g)=>nameFor(id,g)} actorId={actorId} primaryUserId={primaryUserId} onBack={goHome} onEditAccountName={()=>setModal({kind:'accountName'})} onArchived={()=>setScreen('archivedGroups')} onConnectGoogle={()=>{setData((prev)=>({...prev,account:{...prev.account,googleLinked:true}}));setSuccessFlash('Google 帳號已連結');}} onOpenGroupNickname={(gid)=>{setGroupId(gid);setScreen('memberDetail');setModal({kind:'memberDetailTarget',targetUid:actorId});}} onSwitchIdentity={()=>setModal({kind:'switchIdentity'})} onAvatarChange={id=>setData(previous=>selectAvatar(previous,actorId,id))}/>}
 
       {screen==='archivedGroups'&&<ArchivedGroups groups={data.groups.filter((g)=>g.memberIds.includes(actorId)&&g.archived)} actorId={actorId} onBack={()=>setScreen('profile')} onRestore={(gid)=>{setData((prev)=>({...prev,groups:prev.groups.map((g)=>g.id===gid?{...g,archived:false,lastUsedAt:now()}:g)}));notify('群組已恢復。');}} onDelete={(gid)=>{const target=data.groups.find((g)=>g.id===gid);if(target)requestDeleteGroup(target);}}/>}
 
@@ -839,9 +841,9 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
   const summaryTitle=incomingPendingTotal>0?`有 ${formatMoney(incomingPendingTotal)} 等你確認`:myProjected<0?`還要付 ${formatMoney(Math.abs(myProjected))}`:myProjected>0?`還要收 ${formatMoney(myProjected)}`:outgoingPendingTotal>0?'付款等待對方確認':'目前沒有未安排款項';
   const summaryHint=[outgoingPendingTotal>0?`待對方確認 ${formatMoney(outgoingPendingTotal)}`:'',incomingPendingTotal>0?`待我確認 ${formatMoney(incomingPendingTotal)}`:''].filter(Boolean).join(' · ');
 
-  return <><div className="snapshot-status" role="status">{ready?'已結算：可記錄付款':'待重新結算：暫不可新增付款，既有付款仍可處理'}</div>{canManage&&<button className="primary-button full" disabled={ready} onClick={onSettle}>{ready?'已結算':'結算所有帳單'}</button>}<button className="outline-button full" onClick={()=>setSharing(true)}>分享</button>{sharing&&<SettlementShare group={group} activity={activity} actorId={actorId} finance={finalFinance} settlements={settlements} nameFor={nameFor} onClose={()=>setSharing(false)}/>}{allClear?<div className="settled-hero"><CheckCircle2 size={31}/><h2>目前已結清</h2><p>這個活動沒有待處理的款項。</p></div>:<>
-    <section className="settlement-me-card"><small>我的結算</small><strong>{summaryTitle}</strong>{summaryHint&&<span>{summaryHint}</span>}</section>
-
+  return <><section className="settlement-me-card"><small>我的結算</small><strong>{allClear?'已結清':summaryTitle}</strong>{summaryHint&&<span>{summaryHint}</span>}</section>
+    <div className="snapshot-status" role="status">{ready?'已結算：可記錄付款':'待重新結算：暫不可新增付款，既有付款仍可處理'}</div>{canManage&&<button className="primary-button full settle-all-button" disabled={ready} onClick={onSettle}>{ready?'已結算':'結算所有帳單'}</button>}
+    {allClear?<div className="settled-hero"><CheckCircle2 size={31}/><h2>目前已結清</h2><p>這個活動沒有待處理的款項。</p></div>:<>
     {pendingIncoming.length>0&&<section><div className="section-heading"><div><h2>待我確認</h2><p>收到錢後再確認，待確認不等於已結清。</p></div></div><div className="card-list">{pendingIncoming.map((s)=><div className="repayment-card priority-card" key={s.id}><div className="repayment-top"><strong>{nameFor(s.fromUid)} → 我</strong><span className="status-tag">待確認</span></div><strong className="repayment-amount">{formatMoney(s.amount)}</strong><div className="repayment-actions"><button className="primary-button" type="button" onClick={()=>onConfirm(s)}><Check size={15}/>確認已收到</button><button className="outline-button" type="button" onClick={()=>onIssue(s)}>金額有問題</button></div></div>)}</div></section>}
 
     {disputedMine.length>0&&<section><div className="section-heading"><h2>還款需要處理</h2></div>{disputedMine.map((s)=><div className="repayment-card" key={s.id}><strong>{nameFor(s.fromUid)} → {nameFor(s.toUid)} · {formatMoney(s.amount)}</strong><p>這筆付款有問題，金額保留中，不會再次安排付款。</p>{s.issue?.note&&<p>{s.issue.note}</p>}{s.fromUid===actorId?<><button className="outline-button" type="button" onClick={()=>onResubmit(s)}>已處理，重新送出確認</button><button className="text-action-button" onClick={()=>onCancel(s)}>取消這筆付款</button></>:<p className="muted small">等待付款人處理後重新送出。</p>}</div>)}</section>}
@@ -857,6 +859,9 @@ function SettlementTab({ activity, group, actorId, nameFor, expenses, settlement
 
     <details className="disclosure settlement-advanced"><summary>進階結算設定</summary><RoundingPanel activity={activity} group={group} actorId={actorId} expenses={expenses} settlements={settlements} baseBalances={finalFinance.unroundedBalances||baseBalances} repaymentsStarted={settlements.some(s=>['pending','confirmed','disputed'].includes(s.status))} nameFor={nameFor} onUpdateActivity={onUpdateActivity}/></details>
     <button className="outline-button full" type="button" onClick={onAll}>查看所有人的結算</button>
+
+    <section className="settlement-share-entry"><button className="outline-button full" onClick={()=>setSharing(true)}>分享</button></section>
+    {sharing&&<SettlementShare group={group} activity={activity} actorId={actorId} finance={finalFinance} settlements={settlements} nameFor={nameFor} onClose={()=>setSharing(false)}/>}
 
     {showPlanEditor&&<SettlementPlanModal balances={finalFinance.projectedBalances} currentRows={activity.settlementManualTransfers||[]} nameFor={nameFor} onClose={()=>setShowPlanEditor(false)} onSave={savePlan}/>}
     {whyTransfer&&<ConfirmModal title="為什麼我要付他？" confirmText="知道了" hideCancel onClose={()=>setWhyTransfer(null)} onConfirm={()=>setWhyTransfer(null)}><div className="why-transfer-copy"><h3>為什麼我要付錢？</h3><div className="detail-row"><span>我的總分攤</span><strong>{formatMoney(share)}</strong></div><div className="detail-row"><span>我的實際墊付</span><strong>{formatMoney(advanced)}</strong></div>{confirmedPaid>0&&<div className="detail-row"><span>已確認付給別人</span><strong>{formatMoney(confirmedPaid)}</strong></div>}{confirmedReceived>0&&<div className="detail-row"><span>已確認收到還款</span><strong>{formatMoney(confirmedReceived)}</strong></div>}<div className="detail-row detail-row-total"><span>目前淨應付</span><strong>{formatMoney(Math.max(0,-(baseBalances[actorId]||0)))}</strong></div><h3>為什麼是付給 {nameFor(whyTransfer.toUid)}？</h3><p>{nameFor(whyTransfer.toUid)} 目前是活動中的淨應收成員，這筆 {formatMoney(whyTransfer.amount)} 由目前結算方案安排給他。</p></div></ConfirmModal>}

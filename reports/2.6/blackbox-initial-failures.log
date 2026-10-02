@@ -1,0 +1,337 @@
+[WebServer] (node:7003) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:7036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 75 tests using 1 worker
+
+(node:7058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [mobile-chromium] › e2e/mobile-2.5.spec.js:109:1 › settlement batch dirty gates new repayment but unrelated edit and pending confirmation still work (7.9s)
+  ✓   2 [mobile-chromium] › e2e/mobile-2.5.spec.js:191:1 › personal, other and all PNG templates: swipe preserves selection, zero blocks, selected downloads only (23.5s)
+  ✓   3 [mobile-chromium] › e2e/mobile-2.5.spec.js:268:1 › name width and paste overflow reject immediately; draft delete requires confirmation (3.9s)
+  ✓   4 [mobile-chromium] › e2e/mobile-2.6.spec.js:101:1 › My uses account greeting, four avatars persist and preserve finance IDs; navigation never replays startup (6.0s)
+  ✓   5 [mobile-chromium] › e2e/mobile-2.6.spec.js:149:1 › personal settlement first, settle outside card, share last, batch text and permission intact (6.6s)
+  ✓   6 [mobile-chromium] › e2e/mobile-2.6.spec.js:185:1 › reduced-motion startup uses only opacity and never collision/run animations (919ms)
+  ✘   7 [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 (3.1s)
+(node:7688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [mobile-chromium] › e2e/mobile-core.spec.js:59:3 › Bopli 2.6 mobile core journey › 群主可在活動進行中加入新群組成員，預設不改過去支出 (3.9s)
+  ✓   9 [mobile-chromium] › e2e/mobile-core.spec.js:137:3 › Bopli 2.6 mobile core journey › 手機畫面主要操作無水平溢出 (2.3s)
+  ✓  10 [mobile-chromium] › e2e/mobile-extended.spec.js:101:3 › Bopli 2.6 mobile extended journeys › 活動中途退出成員時預設只影響之後，舊支出保留 (3.5s)
+  ✓  11 [mobile-chromium] › e2e/mobile-extended.spec.js:137:3 › Bopli 2.6 mobile extended journeys › 首頁待處理卡直接進結算，活動可一鍵開啟成員管理 (9.9s)
+  ✘  12 [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 (10.6s)
+(node:8021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [mobile-chromium] › e2e/mobile-extended.spec.js:227:3 › Bopli 2.6 mobile extended journeys › 副群主看不到永久刪除；群主可刪除空活動與群組 (10.8s)
+  ✓  14 [mobile-chromium] › e2e/mobile-extended.spec.js:300:3 › Bopli 2.6 mobile extended journeys › 14 人旅行與第二群組帳目互不污染 (5.3s)
+  ✓  15 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:132:1 › 2.6 reset removes every old key only once, preserving new account after reload (3.2s)
+  ✓  16 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:177:1 › partial payment consumes manual allocation, reserves pending, and confirms same record (4.2s)
+  ✓  17 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › owner can change remaining manual plan while pending amount stays fixed (3.1s)
+  ✓  18 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › deputy can change remaining manual plan while pending amount stays fixed (2.9s)
+  ✓  19 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:245:1 › disputed payment stays reserved and can be resubmitted without a duplicate (3.6s)
+  ✓  20 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:277:1 › empty status is consistent across tabs; zero-balance spectator cannot settle others (4.9s)
+  ✓  21 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:305:1 › review member appears once, resolves into current members, and returns directly to activity (3.4s)
+  ✓  22 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:345:1 › tabs preserve each scroll position and second tap scrolls to top (4.1s)
+  ✓  23 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:376:1 › home notification and profile share logo geometry and logo returns home (2.7s)
+  ✓  24 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:393:1 › shared input modal adapts to reduced visual viewport with close, input and save operable (2.4s)
+  ✓  25 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:423:1 › cumulative 15-person fairness backfills receipt allocations before rounding up (5.1s)
+(node:8691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  26 [mobile-chromium] › e2e/mobile-2.5.spec.js:109:1 › settlement batch dirty gates new repayment but unrelated edit and pending confirmation still work (4.6s)
+  ✓  27 [mobile-chromium] › e2e/mobile-2.5.spec.js:191:1 › personal, other and all PNG templates: swipe preserves selection, zero blocks, selected downloads only (18.4s)
+  ✓  28 [mobile-chromium] › e2e/mobile-2.5.spec.js:268:1 › name width and paste overflow reject immediately; draft delete requires confirmation (4.0s)
+  ✓  29 [mobile-chromium] › e2e/mobile-2.6.spec.js:101:1 › My uses account greeting, four avatars persist and preserve finance IDs; navigation never replays startup (5.9s)
+  ✓  30 [mobile-chromium] › e2e/mobile-2.6.spec.js:149:1 › personal settlement first, settle outside card, share last, batch text and permission intact (6.6s)
+  ✓  31 [mobile-chromium] › e2e/mobile-2.6.spec.js:185:1 › reduced-motion startup uses only opacity and never collision/run animations (910ms)
+  ✘  32 [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 (3.0s)
+(node:9138) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9138) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  33 [mobile-chromium] › e2e/mobile-core.spec.js:59:3 › Bopli 2.6 mobile core journey › 群主可在活動進行中加入新群組成員，預設不改過去支出 (4.0s)
+  ✓  34 [mobile-chromium] › e2e/mobile-core.spec.js:137:3 › Bopli 2.6 mobile core journey › 手機畫面主要操作無水平溢出 (2.5s)
+  ✓  35 [mobile-chromium] › e2e/mobile-extended.spec.js:101:3 › Bopli 2.6 mobile extended journeys › 活動中途退出成員時預設只影響之後，舊支出保留 (3.4s)
+  ✓  36 [mobile-chromium] › e2e/mobile-extended.spec.js:137:3 › Bopli 2.6 mobile extended journeys › 首頁待處理卡直接進結算，活動可一鍵開啟成員管理 (10.0s)
+  ✘  37 [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 (10.9s)
+(node:9551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  38 [mobile-chromium] › e2e/mobile-extended.spec.js:227:3 › Bopli 2.6 mobile extended journeys › 副群主看不到永久刪除；群主可刪除空活動與群組 (10.3s)
+  ✓  39 [mobile-chromium] › e2e/mobile-extended.spec.js:300:3 › Bopli 2.6 mobile extended journeys › 14 人旅行與第二群組帳目互不污染 (5.4s)
+  ✓  40 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:132:1 › 2.6 reset removes every old key only once, preserving new account after reload (3.1s)
+  ✓  41 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:177:1 › partial payment consumes manual allocation, reserves pending, and confirms same record (4.1s)
+  ✓  42 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › owner can change remaining manual plan while pending amount stays fixed (3.1s)
+  ✓  43 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › deputy can change remaining manual plan while pending amount stays fixed (3.6s)
+  ✓  44 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:245:1 › disputed payment stays reserved and can be resubmitted without a duplicate (3.6s)
+  ✓  45 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:277:1 › empty status is consistent across tabs; zero-balance spectator cannot settle others (4.3s)
+  ✓  46 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:305:1 › review member appears once, resolves into current members, and returns directly to activity (2.8s)
+  ✓  47 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:345:1 › tabs preserve each scroll position and second tap scrolls to top (4.1s)
+  ✓  48 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:376:1 › home notification and profile share logo geometry and logo returns home (2.6s)
+  ✓  49 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:393:1 › shared input modal adapts to reduced visual viewport with close, input and save operable (2.7s)
+  ✓  50 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:423:1 › cumulative 15-person fairness backfills receipt allocations before rounding up (5.1s)
+(node:10353) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10353) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  51 [mobile-chromium] › e2e/mobile-2.5.spec.js:109:1 › settlement batch dirty gates new repayment but unrelated edit and pending confirmation still work (5.0s)
+  ✓  52 [mobile-chromium] › e2e/mobile-2.5.spec.js:191:1 › personal, other and all PNG templates: swipe preserves selection, zero blocks, selected downloads only (23.2s)
+  ✓  53 [mobile-chromium] › e2e/mobile-2.5.spec.js:268:1 › name width and paste overflow reject immediately; draft delete requires confirmation (4.0s)
+  ✓  54 [mobile-chromium] › e2e/mobile-2.6.spec.js:101:1 › My uses account greeting, four avatars persist and preserve finance IDs; navigation never replays startup (5.8s)
+  ✓  55 [mobile-chromium] › e2e/mobile-2.6.spec.js:149:1 › personal settlement first, settle outside card, share last, batch text and permission intact (6.7s)
+  ✓  56 [mobile-chromium] › e2e/mobile-2.6.spec.js:185:1 › reduced-motion startup uses only opacity and never collision/run animations (843ms)
+  ✘  57 [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 (3.1s)
+(node:10778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  58 [mobile-chromium] › e2e/mobile-core.spec.js:59:3 › Bopli 2.6 mobile core journey › 群主可在活動進行中加入新群組成員，預設不改過去支出 (3.8s)
+  ✓  59 [mobile-chromium] › e2e/mobile-core.spec.js:137:3 › Bopli 2.6 mobile core journey › 手機畫面主要操作無水平溢出 (2.4s)
+  ✓  60 [mobile-chromium] › e2e/mobile-extended.spec.js:101:3 › Bopli 2.6 mobile extended journeys › 活動中途退出成員時預設只影響之後，舊支出保留 (3.4s)
+  ✓  61 [mobile-chromium] › e2e/mobile-extended.spec.js:137:3 › Bopli 2.6 mobile extended journeys › 首頁待處理卡直接進結算，活動可一鍵開啟成員管理 (9.9s)
+  ✘  62 [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 (10.5s)
+(node:11098) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11098) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  63 [mobile-chromium] › e2e/mobile-extended.spec.js:227:3 › Bopli 2.6 mobile extended journeys › 副群主看不到永久刪除；群主可刪除空活動與群組 (10.9s)
+  ✓  64 [mobile-chromium] › e2e/mobile-extended.spec.js:300:3 › Bopli 2.6 mobile extended journeys › 14 人旅行與第二群組帳目互不污染 (5.7s)
+  ✓  65 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:132:1 › 2.6 reset removes every old key only once, preserving new account after reload (3.2s)
+  ✓  66 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:177:1 › partial payment consumes manual allocation, reserves pending, and confirms same record (4.1s)
+  ✓  67 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › owner can change remaining manual plan while pending amount stays fixed (3.3s)
+  ✓  68 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:217:42 › deputy can change remaining manual plan while pending amount stays fixed (3.1s)
+  ✓  69 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:245:1 › disputed payment stays reserved and can be resubmitted without a duplicate (3.5s)
+  ✓  70 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:277:1 › empty status is consistent across tabs; zero-balance spectator cannot settle others (4.4s)
+  ✓  71 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:305:1 › review member appears once, resolves into current members, and returns directly to activity (2.7s)
+  ✓  72 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:345:1 › tabs preserve each scroll position and second tap scrolls to top (4.0s)
+  ✓  73 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:376:1 › home notification and profile share logo geometry and logo returns home (2.6s)
+  ✓  74 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:393:1 › shared input modal adapts to reduced visual viewport with close, input and save operable (2.4s)
+  ✓  75 [mobile-chromium] › e2e/mobile-regression-2.4.spec.js:423:1 › cumulative 15-person fairness backfills receipt allocations before rounding up (5.1s)
+
+
+  1) [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      38 |     await expect(page.getByText('目前已結清')).toBeVisible();
+      39 |     await page.getByRole('button', { name: '去結算' }).click();
+    > 40 |     await expect(page.getByText('目前已結清')).toBeVisible();
+         |                                           ^
+      41 |   });
+      42 |
+      43 |   test('群主可在活動進行中加入新群組成員，預設不改過去支出', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-core.spec.js:40:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      38 |     await expect(page.getByText('目前已結清')).toBeVisible();
+      39 |     await page.getByRole('button', { name: '去結算' }).click();
+    > 40 |     await expect(page.getByText('目前已結清')).toBeVisible();
+         |                                           ^
+      41 |   });
+      42 |
+      43 |   test('群主可在活動進行中加入新群組成員，預設不改過去支出', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-core.spec.js:40:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      38 |     await expect(page.getByText('目前已結清')).toBeVisible();
+      39 |     await page.getByRole('button', { name: '去結算' }).click();
+    > 40 |     await expect(page.getByText('目前已結清')).toBeVisible();
+         |                                           ^
+      41 |   });
+      42 |
+      43 |   test('群主可在活動進行中加入新群組成員，預設不改過去支出', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-core.spec.js:40:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-core-Bopli-2-6-mobi-85e5c-ey-新使用者可建立群組、活動、記第一筆支出並看到結算-mobile-chromium-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      127 |     await expect(page.getByRole('heading', { name: '待我確認', exact: true })).toBeVisible();
+      128 |     await page.getByRole('button', { name: /確認已收到/ }).click();
+    > 129 |     await expect(page.getByText('目前已結清')).toBeVisible();
+          |                                           ^
+      130 |   });
+      131 |
+      132 |   test('副群主看不到永久刪除；群主可刪除空活動與群組', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-extended.spec.js:129:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      127 |     await expect(page.getByRole('heading', { name: '待我確認', exact: true })).toBeVisible();
+      128 |     await page.getByRole('button', { name: /確認已收到/ }).click();
+    > 129 |     await expect(page.getByText('目前已結清')).toBeVisible();
+          |                                           ^
+      130 |   });
+      131 |
+      132 |   test('副群主看不到永久刪除；群主可刪除空活動與群組', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-extended.spec.js:129:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+
+    Error: expect.toBeVisible: Error: strict mode violation: getByText('目前已結清') resolved to 2 elements:
+        1) <strong>目前已結清</strong> aka getByRole('strong').filter({ hasText: '目前已結清' })
+        2) <h2>目前已結清</h2> aka getByRole('heading', { name: '目前已結清' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 7000ms
+      - waiting for getByText('目前已結清')
+
+
+      127 |     await expect(page.getByRole('heading', { name: '待我確認', exact: true })).toBeVisible();
+      128 |     await page.getByRole('button', { name: /確認已收到/ }).click();
+    > 129 |     await expect(page.getByText('目前已結清')).toBeVisible();
+          |                                           ^
+      130 |   });
+      131 |
+      132 |   test('副群主看不到永久刪除；群主可刪除空活動與群組', async ({ page }) => {
+        at /workspace/bopli/e2e/mobile-extended.spec.js:129:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../tmp/bopli26-e2e-results/mobile-extended-Bopli-2-6--97ce5-ys-付款人記錄付款後，收款人可切換身分確認並完成結清-mobile-chromium-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+    [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+    [mobile-chromium] › e2e/mobile-core.spec.js:20:3 › Bopli 2.6 mobile core journey › 新使用者可建立群組、活動、記第一筆支出並看到結算 
+    [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+    [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+    [mobile-chromium] › e2e/mobile-extended.spec.js:169:3 › Bopli 2.6 mobile extended journeys › 付款人記錄付款後，收款人可切換身分確認並完成結清 
+  69 passed (7.0m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
