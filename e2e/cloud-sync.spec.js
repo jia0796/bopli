@@ -2,8 +2,8 @@ import {test,expect} from '@playwright/test';
 const gate=page=>page.getByRole('alertdialog',{name:'連線狀態'});
 async function api(page,name,data={}) {
   return page.evaluate(async({name,data})=>{
-    const {firebaseClient}=await import('/src/lib/firebaseClient.js');
-    const client=firebaseClient();
+    const {supabaseClient}=await import('/src/lib/supabaseClient.js');
+    const client=supabaseClient();
     if(name==='state') {
       const groups=await client.groups((await client.login()).uid);
       return (await client.call('syncRead',{groupId:groups[0].id})).store;
@@ -16,13 +16,30 @@ async function onboard(page,name) {
   await page.getByRole('button',{name:'開始使用',exact:true}).click();
   await expect(page.getByRole('button',{name:'輸入邀請碼加入群組'})).toBeVisible();
 }
+test('online browser cannot enter when cloud fails; database loss blocks until recovery',async({page})=>{
+  await page.route('http://127.0.0.1:54329/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'服務暫時無法使用'})}));
+  await page.goto('/');
+  await expect(gate(page)).toBeVisible();
+  await expect(page.getByRole('button',{name:'開始使用'})).toHaveCount(0);
+  await page.unroute('http://127.0.0.1:54329/auth/**');
+  await page.getByRole('button',{name:'重試',exact:true}).click();
+  await page.getByLabel('帳號名稱').fill('Recovered');
+  await page.getByRole('button',{name:'開始使用',exact:true}).click();
+  await expect(gate(page)).toHaveCount(0);
+  await page.route('http://127.0.0.1:54329/rest/**',route=>route.fulfill({status:429,contentType:'application/json',body:'{"message":"Free quota unavailable"}'}));
+  await expect(gate(page)).toBeVisible({timeout:20000});
+  await expect(page.locator('[inert]')).toHaveCount(1);
+  await page.unroute('http://127.0.0.1:54329/rest/**');
+  await page.getByRole('button',{name:'重試',exact:true}).click();
+  await expect(gate(page)).toHaveCount(0,{timeout:20000});
+});
 test('offline startup cannot enter; recovery loads cloud; disconnect overlay preserves screen and drafts',async({page,context})=>{
-  // Load the static shell first; emulate lack of Firebase network before boot.
-  await page.route('http://127.0.0.1:9099/**',route=>route.abort());
+  // Static shell can load, but cloud is unavailable before boot.
+  await page.route('http://127.0.0.1:54329/**',route=>route.abort());
   await page.addInitScript(()=>Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false}));
   await page.goto('/');await expect(gate(page)).toContainText('目前無網路，等待重新連線');
   await expect(page.getByRole('button',{name:'開始使用'})).toHaveCount(0);
-  await page.unroute('http://127.0.0.1:9099/**');
+  await page.unroute('http://127.0.0.1:54329/**');
   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>true});window.dispatchEvent(new Event('online'));});
   await page.getByLabel('帳號名稱').fill('Reconnect');await page.getByRole('button',{name:'開始使用'}).click();
   await expect(gate(page)).toHaveCount(0);

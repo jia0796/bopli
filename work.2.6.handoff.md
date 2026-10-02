@@ -28,7 +28,7 @@ project.md
 
 - 以目前 main / 2.5 實際程式狀態為基礎。
 - 不因版本升級重寫帳務核心。
-- 不新增 Google、自訂網域或照片上傳。多人 Firebase 同步基礎依 project.md 第 30 節本次明確範圍執行。
+- 不新增 Google、自訂網域或照片上傳。多人 Supabase Free 同步基礎依 project.md 第 30 節本次明確範圍執行。
 - 原預設保留資料；本次使用者明確要求清除 2.5（含）以前資料，優先採一次性清除，保留 2.6 與無關資料。其餘 schema 以前向 migration 處理。
 - 既有 settlement snapshot、pending/disputed/confirmed、manual route 與歷史帳務 invariant 必須維持。
 - 雲端模式不清除／自動上傳舊本機帳本；保留 internal IDs，authUid 只作身份綁定。
@@ -195,7 +195,7 @@ npm test
 
 以及既有 Playwright mobile E2E。
 
-多人同步另執行 `npm ci --prefix functions`、`npm run test:cloud`（需 Java 21+），依 project.md 第 30 節驗證離線阻擋／恢復、邀請、双 client 同步、revision conflict 與 transaction overpay。Firebase live project 未設定／部署時如實回報，setup 步驟見 docs/firebase-setup.md。
+多人同步另執行 `npm run test:cloud`（本機 PGlite PostgreSQL + Auth/Realtime 協定測試 harness，不需 Java / Docker / 付費帳號），依 project.md 第 30 節驗證離線阻擋／恢復、邀請、双 client 同步、revision conflict 與 transaction overpay。Supabase Free live project 未設定／部署時如實回報，setup 步驟見 docs/supabase-setup.md。
 
 不要在失敗時 merge，也不要聲稱 Pages 已部署，除非實際驗證。
 
@@ -215,4 +215,3 @@ npm test
 - Actions 狀態
 - Pages 狀態（若有）
 - 已知限制
-

@@ -1,23 +1,10 @@
-import { initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { applyCloudChanges, assertId, equal, fail } from './shared/cloudProtocol.js';
-import { assertName } from './shared/inputRules.js';
-initializeApp();
-const db=getFirestore();
-const options={region:'asia-east1',maxInstances:10,timeoutSeconds:30};
+import { applyCloudChanges, assertId, fail } from '../src/lib/cloudProtocol.js';
+import { assertName } from '../src/lib/inputRules.js';
 const paths={activities:'activities',expenses:'expenses',settlements:'repayments'};
 const clean=x=>JSON.parse(JSON.stringify(x));
-const callable=fn=>onCall(options,async req=>{
-  if(!req.auth)throw new HttpsError('unauthenticated','請先登入');
-  try{return await fn(req.auth.uid,req.data||{});}catch(e){
-    if(e instanceof HttpsError)throw e;
-    if(e.code&&['aborted','permission-denied','invalid-argument','failed-precondition','resource-exhausted'].includes(e.code))throw new HttpsError(e.code,e.message);
-    if(e.code)throw new HttpsError('unavailable','目前無法連線，請重試');
-    throw new HttpsError('failed-precondition',e.message);
-  }
-});
+// The domain and authorization checks are shared with the former Firebase service.
+export function createSyncService(db) {
 async function identity(tx,uid) {
   const snap=await tx.get(db.doc(`identities/${uid}`));
   return snap.exists?snap.data():null;
@@ -40,11 +27,11 @@ async function groupStore(tx,id,uid) {
   for(const [kind,index] of [['activities',1],['expenses',2],['settlements',3]])for(const doc of results[index].docs)if(doc.data().deletedAt)retiredIds.add(`${kind}/${doc.id}`);
   return {ref,epoch,readerAuthUids,retiredIds,store:{version:26,users:Object.fromEntries(members.map(m=>[m.id,m])),groups:[metadata],activities,expenses,settlements,drafts:[]}};
 }
-export const syncHealth=callable(async(uid)=>{
-  await db.doc(`identities/${uid}`).get();
+const syncHealth=(async(uid)=>{
+  await db.runTransaction(tx=>tx.get(db.doc(`identities/${uid}`)));
   return {ok:true,serverTime:Date.now()};
 });
-export const syncBootstrap=callable(async(uid,{name})=>db.runTransaction(async tx=>{
+const syncBootstrap=(async(uid,{name})=>db.runTransaction(async tx=>{
   let profile=await identity(tx,uid);
   if(!profile&&name) {
     name=assertName(name);
@@ -53,13 +40,13 @@ export const syncBootstrap=callable(async(uid,{name})=>db.runTransaction(async t
   }
   return profile;
 }));
-export const syncRead=callable(async(uid,{groupId})=>db.runTransaction(async tx=>{
+const syncRead=(async(uid,{groupId})=>db.runTransaction(async tx=>{
   const profile=await identity(tx,uid);
   if(!profile)fail('請先設定名稱');
   const data=await groupStore(tx,groupId,uid);
   return {store:data.store,epoch:data.epoch};
 }));
-export const syncCommit=callable(async(uid,{groupId,patch,requestId})=>db.runTransaction(async tx=>{
+const syncCommit=(async(uid,{groupId,patch,requestId})=>db.runTransaction(async tx=>{
   assertId(requestId);
   const receipt=db.doc(`identities/${uid}/requests/${requestId}`);
   const [profile,done]=await Promise.all([identity(tx,uid),tx.get(receipt)]);
@@ -98,7 +85,7 @@ export const syncCommit=callable(async(uid,{groupId,patch,requestId})=>db.runTra
   tx.create(receipt,result);
   return result;
 }));
-export const syncProfile=callable(async(uid,{accountName,avatarId})=>db.runTransaction(async tx=>{
+const syncProfile=(async(uid,{accountName,avatarId})=>db.runTransaction(async tx=>{
   const profile=await identity(tx,uid);
   if(!profile)fail('請先設定名稱');
   assertName(accountName);
@@ -113,7 +100,7 @@ export const syncProfile=callable(async(uid,{accountName,avatarId})=>db.runTrans
   return updated;
 }));
 const hash=code=>createHash('sha256').update(code).digest('hex');
-export const syncInvite=callable(async(uid,{groupId})=>{
+const syncInvite=(async(uid,{groupId})=>{
   // 80 bits, not enumerable group IDs. Hash stored, 7-day expiration.
   const code=randomBytes(10).toString('hex').toUpperCase();
   await db.runTransaction(async tx=>{
@@ -125,7 +112,7 @@ export const syncInvite=callable(async(uid,{groupId})=>{
   });
   return {code};
 });
-export const syncJoin=callable(async(uid,{code,nickname})=>db.runTransaction(async tx=>{
+const syncJoin=(async(uid,{code,nickname})=>db.runTransaction(async tx=>{
   if(typeof code!=='string'||!/^[A-F0-9]{20}$/.test(code.toUpperCase()))fail('邀請碼不正確');
   nickname=assertName(nickname);
   const profile=await identity(tx,uid);
@@ -153,3 +140,6 @@ export const syncJoin=callable(async(uid,{code,nickname})=>db.runTransaction(asy
   tx.create(ref.collection('members').doc(profile.id),profile);
   return {groupId:g.id};
 }));
+
+return {syncHealth,syncBootstrap,syncRead,syncCommit,syncProfile,syncInvite,syncJoin};
+}

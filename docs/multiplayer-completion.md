@@ -1,3 +1,9 @@
+# 歷史報告說明
+
+以下記錄上一階段 Firebase 實作（c7e3607）。使用者之後要求真正 0 元，已改用 Supabase Free。
+目前設定見 [supabase-setup.md](./supabase-setup.md)，目前結果見 [zero-cost-completion.md](./zero-cost-completion.md)。
+以下 Firebase 檔案／部署流程不再適用。
+
 # 多人即時同步基礎完成報告
 
 版本：bopli_test.2.6。工作分支：codex/multiplayer-foundation，從 main `e7a39b29ce26c3a906a80ca56a63bcbae1b3aa60` 建立；main 與 origin/bopli_test.2.6 當時產品檔案內容一致。本次需求已列入 project.md 第 30 節，handoff 維持以 project.md 為唯一規格。

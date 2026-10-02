@@ -13,12 +13,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
       - run: npm ci
-      - run: npm ci --prefix functions
+      - run: npm run backend:prepare
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check --config supabase/functions/deno.json supabase/functions/bopli-sync/index.ts
       - run: npm run build
       - run: npm test
       - run: npx playwright install --with-deps chromium

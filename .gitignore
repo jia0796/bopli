@@ -8,6 +8,8 @@ dist/
 coverage/
 .tools/
 functions/shared/
+supabase/functions/_shared/
+supabase/.temp/
 *-debug.log*
 playwright-report/
 test-results/

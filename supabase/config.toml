@@ -1,0 +1,10 @@
+project_id = "bopli"
+
+[functions.bopli-sync]
+# New publishable keys/JWT signing keys are verified via Auth.getUser in handler.
+# Gateway verify_jwt is disabled; application authentication remains mandatory.
+verify_jwt = false
+
+[auth]
+enabled = true
+enable_anonymous_sign_ins = true

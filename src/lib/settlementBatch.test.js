@@ -1,12 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildSnapshot,snapshotValid,repaymentReferencesExpense,validateHistoricalRepayments} from './settlementBatch.js';
+import {buildSnapshot,snapshotValid,repaymentReferencesExpense,validateHistoricalRepayments,accountingSignature} from './settlementBatch.js';
 import {canEditExpense} from './domain.js';
 const activity={id:'a',participantIds:['A','B','C','D']};
 const expense=(id,payer,debtor,amount)=>({id,activityId:'a',amount,paidBy:payer,createdBy:'A',allocations:{[debtor]:amount},participantIds:[debtor],splitMode:'custom'});
 const expenses=[expense('one','B','A',500),expense('two','A','C',300),expense('other','D','C',100)];
 const snapshot=()=>buildSnapshot(activity,expenses,[],'snap','now','A');
 const repayment=()=>({id:'r',activityId:'a',fromUid:'A',toUid:'B',amount:200,status:'pending',snapshotId:'snap',accountingBasis:snapshot().basis});
+
+test('JSONB field reordering preserves snapshot validity, including legacy JSON signatures',()=>{
+ const reverse=x=>Array.isArray(x)?x.map(reverse):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).reverse().map(k=>[k,reverse(x[k])])):x;
+ const routed={...activity,settlementManualTransfers:[{id:'route',fromUid:'A',toUid:'B',amount:100}]};
+ const snap=buildSnapshot(routed,expenses,[],'snap','now','A');
+ const legacy=JSON.stringify(reverse(JSON.parse(snap.signature)));
+ const reloaded={...reverse(routed),settlementSnapshot:{...snap,signature:legacy}};
+ assert.equal(accountingSignature(reverse(routed),reverse(expenses)),snap.signature);
+ assert.equal(snapshotValid(reloaded,reverse(expenses)),true);
+ assert.equal(reloaded.settlementSnapshot.signature,legacy); // history untouched
+ assert.equal(snapshotValid({...reloaded,settlementSnapshot:{...snap,signature:'not-json'}},expenses),false);
+});
 test('snapshot stable until expense, name, routes, rounding or members change',()=>{
  const a={...activity,settlementSnapshot:snapshot()};assert.ok(snapshotValid(a,expenses));
  for(const changed of [[...expenses,expense('new','B','C',10)],expenses.slice(1),expenses.map(e=>e.id==='one'?{...e,title:'rename'}:e)])assert.equal(snapshotValid(a,changed),false);

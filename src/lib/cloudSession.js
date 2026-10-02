@@ -19,6 +19,14 @@ export class CloudSession {
   disconnect(message='目前無網路，等待重新連線') {
     this.generation++;this.status='waiting';this.message=message;this.emit();
   }
+  async checkConnection() {
+    if(this.checking||this.closed)return;
+    if(this.status!=='ready')return this.connect();
+    this.checking=true;
+    try{await timed(this.client.call('syncHealth'));}
+    catch{if(!this.closed)this.disconnect('無法連線至伺服器，等待重新連線');}
+    finally{this.checking=false;}
+  }
   async connect() {
     if(this.connecting||this.closed)return;
     if(!this.network())return this.disconnect();

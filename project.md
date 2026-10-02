@@ -59,11 +59,11 @@ https://jia0796.github.io/bopli/
 
 ## 3. 技術架構
 
-目前新增「多人即時同步基礎」，待接入使用者 Firebase 專案；既有本機原型僅供開發回歸測試：
+目前新增「多人即時同步基礎」，待接入使用者 Supabase Free 專案；既有本機原型僅供開發回歸測試：
 
 - React
 - Vite
-- Firebase 匿名 Authentication / Cloud Firestore / callable Functions
+- Supabase 匿名 Auth / PostgreSQL / Realtime / Edge Functions（Free 方案）
 - localStorage 僅保存雲端模式草稿與 UI；既有本機原型帳本不自動上傳
 - Vitest / Node test
 - Playwright mobile E2E
@@ -72,11 +72,11 @@ https://jia0796.github.io/bopli/
 
 尚未完成：
 
-- live Firebase project 建立、設定與部署
+- live Supabase Free project 建立、設定與部署
 - Google 帳號正式登入／恢復
 - 雲端備份
 
-雲端模式以 Firestore 為 source of truth。多人同步的本次已確認範圍見第 30 節，優先於原本延後 Firebase 的描述。
+雲端模式以 Supabase PostgreSQL 為 source of truth。多人同步的本次已確認範圍見第 30 節，優先於原本延後 Firebase 的描述。
 
 ### 資料原則
 
@@ -1171,16 +1171,18 @@ src/version.js
 
 # 30. 多人即時同步基礎（本次使用者明確要求）
 
-本節更新原本延後 Firebase 的範圍，維持 bopli_test.2.6 名稱與既有帳務／權限規則。技術執行細節見 docs/firebase-setup.md。
+本節更新原本延後 Firebase 的範圍，維持 bopli_test.2.6 名稱與既有帳務／權限規則。技術執行細節見 docs/supabase-setup.md；使用者後續明確要求真正 0 元，取代原 Firebase/Blaze 實作。
 
 1. Authentication 僅匿名登入，不做 Google。保留 Bopli internal IDs；authUid 只綁定身份，不改寫歷史人物 ID。
-2. Firestore 為多人共用 source of truth，以 groups/{groupId} 及 members / activities / expenses / repayments / settlementSnapshots 子集合合理拆分，不存整包 app state 到單一 document。
+2. Supabase PostgreSQL 為多人共用 source of truth。bopli_documents 每列只保存 groups/{groupId} 或 members / activities / expenses / repayments / settlementSnapshots 的單筆資料，依 collection_path 與 path 分開，不保存整包 app state。Realtime 訂閱受 RLS 保護的群組 epoch。
 3. 加入群組採邀請碼 MVP，必須驗證身份、邀請權限與群組暱稱。群組加入不自動改寫舊活動支出。
 4. 同筆支出 revision optimistic concurrency，先提交成功者保留；過期提交提示「這筆支出已被其他成員更新，請重新確認」，不自動 merge。
 5. 支出、repayment、確認、disputed、snapshot、manual route 等帳務操作以 transaction / atomic write 或等價安全机制處理。伺服器驗證權限與既有 accounting invariants，防 overpay、雙重確認及改寫歷史。
-6. 啟動離線或 Firebase / Firestore 無法連線不能進首頁。顯示 spinner、連線狀態文字、重試與自動重試，不能只有無限 spinner。
+6. 啟動離線或 Auth / 資料庫 / 同步後端無法連線不能進首頁。顯示 spinner、連線狀態文字、重試與自動重試，不能只有無限 spinner。
 7. 使用中斷線顯示最高優先 overlay，保留原畫面／表單，阻擋正式支出、結算、還款、確認與邀請等雲端寫入。恢復後先重新同步，才解除並回原畫面。
 8. 本機可保留草稿／UI 狀態，正式帳務不可離線寫入或排隊當 source of truth。
-9. 建立 config 範本、Rules、indexes、.env.example、setup 文件；私鑰／管理憑證不可硬編進 repo。需要 live project 登入／授權時先完成可接入程式，再列出使用者設定步驟，不能聲稱已建立雲端資源。
+9. 建立 Supabase config、SQL migration / RLS / indexes、.env.example、setup 文件；私鑰／管理憑證不可硬編進 repo。需要 live project 登入／授權時先完成可接入程式，再列出使用者設定步驟，不能聲稱已建立雲端資源。
 10. 單元／整合／Playwright 驗證啟動離線、使用中斷線與恢復、revision conflict、transaction overpay、邀請碼加入、兩個 client 支出同步。
 11. 不做完整離線編輯、自動資料 merge、Google 登入。舊本機帳本不自動上傳、不改寫人物 ID；雲端模式不清除原本本機資料。既有一次性 2.5 清除規則只適用本機原型。
+
+12. 雲端使用 Supabase Free，前端沿用免費 GitHub Pages；不綁付款方式、不開通付費方案、不依賴限時試用額度或學生資格。免費額度超限或閒置暫停時顯示連線等待，不能繞過雲端保護；0 元不代表無限容量或永久服務保證。

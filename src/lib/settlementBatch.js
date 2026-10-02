@@ -2,15 +2,20 @@ import { activityFinance } from './activityFinance.js';
 import { expensePayments } from './ledger.js';
 
 export const activeRepayment = s => ['pending','disputed','confirmed'].includes(s.status);
+// PostgreSQL JSONB (and cloud document stores) may reorder object keys. Signature
+// semantics must depend on values, not serialization order; preserve array order.
+const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 export function expenseNet(expense, uid) {
   return expensePayments(expense).filter(p=>p.uid===uid).reduce((sum,p)=>sum+p.amount,0)
     -(expense.change?.receiverUid===uid?(expense.change.amount||0):0)-(expense.allocations?.[uid]||0);
 }
 export function accountingSignature(activity, expenses) {
-  return JSON.stringify({participants:activity.participantIds,expenses:expenses.map(e=>({id:e.id,title:e.title,revision:e.revision,amount:e.amount,allocations:e.allocations,payments:expensePayments(e),change:e.change||null})).sort((a,b)=>a.id.localeCompare(b.id)),manual:activity.settlementManualTransfers||[],rounding:activity.roundingLockedAt?activity.roundingConfig:null});
+  return JSON.stringify(canonical({participants:activity.participantIds,expenses:expenses.map(e=>({id:e.id,title:e.title,revision:e.revision,amount:e.amount,allocations:e.allocations,payments:expensePayments(e),change:e.change||null})).sort((a,b)=>a.id.localeCompare(b.id)),manual:activity.settlementManualTransfers||[],rounding:activity.roundingLockedAt?activity.roundingConfig:null}));
 }
 export function snapshotValid(activity, expenses) {
-  return Boolean(activity.settlementSnapshot&&activity.settlementSnapshot.signature===accountingSignature(activity,expenses));
+  if(!activity.settlementSnapshot)return false;
+  // Accept the original JSON signatures semantically, without rewriting history.
+  try{return JSON.stringify(canonical(JSON.parse(activity.settlementSnapshot.signature)))===accountingSignature(activity,expenses);}catch{return false;}
 }
 export function buildSnapshot(activity, expenses, settlements, id, at, actorId) {
   const finance=activityFinance(activity,expenses,settlements);

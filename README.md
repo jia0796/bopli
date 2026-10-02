@@ -28,13 +28,18 @@ npm run build
 
 ## 目前限制
 
-目前資料仍主要儲存在瀏覽器 `localStorage`：
+多人同步使用 **Supabase Free + GitHub Pages**，不需 Blaze 或付款方式。
+設定：[docs/supabase-setup.md](./docs/supabase-setup.md)。
+匿名 Auth、邀請碼、PostgreSQL 個別帳務列與原子交易、revision conflict、Realtime、斷線 overlay 已實作。
+程式完成不代表 live 專案已建立／發布，仍需登入設定免費專案。
 
-- 不是真正多人即時同步
 - Google Authentication 尚未正式接上
-- 邀請連結尚未接 Firebase / Firestore
-- 不同裝置資料彼此獨立
-- 清除瀏覽器網站資料會清除本機測試資料
+- 清除登入資料／換裝置會建立新匿名身份，尚無身份恢復
+- 免費容量有限，閒置一週可能暫停；超限不收費但可能限制服務
+- 本機只保留草稿/UI 與 session，正式帳務不可離線寫入
+- 舊本機帳本不自動上傳，未設定雲端時不進首頁
+
+雲端測試：`npm run test:cloud`（實際 PGlite SQL + 模擬 Auth/Realtime 平台，不需 Java/Docker）。
 
 ## 核心帳務原則
 
