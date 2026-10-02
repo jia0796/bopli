@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: '**/cloud-*.spec.js',
   timeout: 45000,
   expect: { timeout: 7000 },
   fullyParallel: false,
@@ -20,6 +21,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    env: { VITE_BOPLI_MODE: 'local' },
     command: 'npm run dev -- --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,

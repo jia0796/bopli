@@ -1,0 +1,8 @@
+{ "indexes": [], "fieldOverrides": [
+  {"collectionGroup":"groups","fieldPath":"readerAuthUids","indexes":[{"arrayConfig":"CONTAINS","queryScope":"COLLECTION"}]},
+  {"collectionGroup":"expenses","fieldPath":"history","indexes":[]},
+  {"collectionGroup":"activities","fieldPath":"settlementSnapshots","indexes":[]},
+  {"collectionGroup":"activities","fieldPath":"auditHistory","indexes":[]},
+  {"collectionGroup":"settlementSnapshots","fieldPath":"basis","indexes":[]},
+  {"collectionGroup":"settlementSnapshots","fieldPath":"signature","indexes":[]}
+] }

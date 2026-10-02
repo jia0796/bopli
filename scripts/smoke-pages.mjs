@@ -11,7 +11,7 @@ try {
   if(!response?.ok())throw new Error('Pages response: '+response?.status());
   await page.getByLabel('帳號名稱').fill('Pages smoke');
   await page.getByRole('button',{name:'開始使用',exact:true}).click();
-  await page.getByRole('button',{name:'稍後再說'}).click();
+  await page.getByRole('button',{name:'輸入邀請碼加入群組'}).waitFor();
   await page.getByText('bopli_test.2.6',{exact:false}).first().waitFor();
   await page.getByRole('button',{name:'建立群組',exact:true}).first().click();
   await page.getByLabel('群組名稱').fill('Smoke group');

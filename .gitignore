@@ -6,3 +6,10 @@ dist/
 !.env.example
 *.local
 coverage/
+.tools/
+functions/shared/
+*-debug.log*
+playwright-report/
+test-results/
+.firebase/
+rules-analysis.local.md

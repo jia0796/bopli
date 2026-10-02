@@ -5,7 +5,7 @@ import { saveStore } from './store.js';
  * Batch rapid React state changes into one synchronous localStorage write.
  * pagehide / visibilitychange flush the latest pending state before the page is left.
  */
-export function useStorePersistence(data, { delay = 300, onError } = {}) {
+export function useStorePersistence(data, { delay = 300, onError, enabled = true } = {}) {
   const latestRef = useRef(data);
   const timerRef = useRef(null);
   const dirtyRef = useRef(false);
@@ -32,6 +32,7 @@ export function useStorePersistence(data, { delay = 300, onError } = {}) {
   }, []);
 
   useEffect(() => {
+    if(!enabled)return undefined;
     const changed = latestRef.current !== data;
     latestRef.current = data;
     // loadStore already provides the initial persisted state. Avoid immediately
@@ -49,7 +50,7 @@ export function useStorePersistence(data, { delay = 300, onError } = {}) {
         timerRef.current = null;
       }
     };
-  }, [data, delay, flush]);
+  }, [data, delay, flush, enabled]);
 
   useEffect(() => {
     const onPageHide = () => flush();

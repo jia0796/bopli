@@ -59,26 +59,24 @@ https://jia0796.github.io/bopli/
 
 ## 3. 技術架構
 
-目前仍是前端原型：
+目前新增「多人即時同步基礎」，待接入使用者 Firebase 專案；既有本機原型僅供開發回歸測試：
 
 - React
 - Vite
-- localStorage
+- Firebase 匿名 Authentication / Cloud Firestore / callable Functions
+- localStorage 僅保存雲端模式草稿與 UI；既有本機原型帳本不自動上傳
 - Vitest / Node test
 - Playwright mobile E2E
 - GitHub Actions
 - GitHub Pages
 
-尚未正式接入：
+尚未完成：
 
-- Firebase Authentication
-- Firestore
-- 真正多人跨裝置同步
-- 正式邀請後端
+- live Firebase project 建立、設定與部署
 - Google 帳號正式登入／恢復
 - 雲端備份
 
-目前資料仍以瀏覽器 localStorage 為主。
+雲端模式以 Firestore 為 source of truth。多人同步的本次已確認範圍見第 30 節，優先於原本延後 Firebase 的描述。
 
 ### 資料原則
 
@@ -1045,16 +1043,13 @@ src/version.js
 - 多幣別
 - OCR
 - AI 品項辨識
-- Firebase / Firestore 正式後端
 - Google 正式帳號同步
 - 手動備份／還原
-- 即時多人協作
 - 公開分享 URL
 - 分享圖自由編輯器
 - PDF 分享
 - QR Code 分享
 - Google Authentication 正式串接
-- Firebase / Firestore 雲端同步
 - 自訂網域 / DNS 遷移
 - 自訂頭像照片上傳
 
@@ -1168,7 +1163,24 @@ src/version.js
 本版先不擴大至：
 
 - Google Authentication 正式串接。
-- Firebase / Firestore 雲端同步。
 - 自訂網域購買與 DNS 遷移。
 - HTTPS 部署架構重做；目前 GitHub Pages 既有 HTTPS 可繼續使用。
 - 自訂頭像照片上傳。
+
+---
+
+# 30. 多人即時同步基礎（本次使用者明確要求）
+
+本節更新原本延後 Firebase 的範圍，維持 bopli_test.2.6 名稱與既有帳務／權限規則。技術執行細節見 docs/firebase-setup.md。
+
+1. Authentication 僅匿名登入，不做 Google。保留 Bopli internal IDs；authUid 只綁定身份，不改寫歷史人物 ID。
+2. Firestore 為多人共用 source of truth，以 groups/{groupId} 及 members / activities / expenses / repayments / settlementSnapshots 子集合合理拆分，不存整包 app state 到單一 document。
+3. 加入群組採邀請碼 MVP，必須驗證身份、邀請權限與群組暱稱。群組加入不自動改寫舊活動支出。
+4. 同筆支出 revision optimistic concurrency，先提交成功者保留；過期提交提示「這筆支出已被其他成員更新，請重新確認」，不自動 merge。
+5. 支出、repayment、確認、disputed、snapshot、manual route 等帳務操作以 transaction / atomic write 或等價安全机制處理。伺服器驗證權限與既有 accounting invariants，防 overpay、雙重確認及改寫歷史。
+6. 啟動離線或 Firebase / Firestore 無法連線不能進首頁。顯示 spinner、連線狀態文字、重試與自動重試，不能只有無限 spinner。
+7. 使用中斷線顯示最高優先 overlay，保留原畫面／表單，阻擋正式支出、結算、還款、確認與邀請等雲端寫入。恢復後先重新同步，才解除並回原畫面。
+8. 本機可保留草稿／UI 狀態，正式帳務不可離線寫入或排隊當 source of truth。
+9. 建立 config 範本、Rules、indexes、.env.example、setup 文件；私鑰／管理憑證不可硬編進 repo。需要 live project 登入／授權時先完成可接入程式，再列出使用者設定步驟，不能聲稱已建立雲端資源。
+10. 單元／整合／Playwright 驗證啟動離線、使用中斷線與恢復、revision conflict、transaction overpay、邀請碼加入、兩個 client 支出同步。
+11. 不做完整離線編輯、自動資料 merge、Google 登入。舊本機帳本不自動上傳、不改寫人物 ID；雲端模式不清除原本本機資料。既有一次性 2.5 清除規則只適用本機原型。

@@ -8,24 +8,35 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "npm run test:unit && npm run test:stress && npm run test:ui",
-    "test:unit": "node --test src/lib/domain.test.js src/lib/ledger.test.js src/lib/lifecycle.test.js src/lib/money.test.js src/lib/rounding.test.js src/lib/selectors.test.js src/lib/workflow.test.js src/lib/activityFinance.test.js src/lib/settlementBatch.test.js src/lib/inputRules.test.js src/lib/settlementShare.test.js src/lib/avatars.test.js",
-    "test:ui": "vitest run src/components/*.test.jsx src/lib/store.migration.test.js src/lib/useStorePersistence.test.jsx",
-    "test:stress": "node --test src/lib/stress.test.js"
+    "test:unit": "node --test src/lib/domain.test.js src/lib/ledger.test.js src/lib/lifecycle.test.js src/lib/money.test.js src/lib/rounding.test.js src/lib/selectors.test.js src/lib/workflow.test.js src/lib/activityFinance.test.js src/lib/settlementBatch.test.js src/lib/inputRules.test.js src/lib/settlementShare.test.js src/lib/avatars.test.js src/lib/cloudProtocol.test.js src/lib/cloudSession.test.js",
+    "test:ui": "vitest run src/components src/lib/store.migration.test.js src/lib/useStorePersistence.test.jsx",
+    "test:stress": "node --test src/lib/stress.test.js",
+    "functions:prepare": "node scripts/prepare-functions.mjs",
+    "test:cloud:integration": "node --test integration/cloud.test.js",
+    "test:e2e": "playwright test",
+    "test:cloud:e2e": "playwright test --config playwright.cloud.config.js",
+    "test:cloud": "npm run functions:prepare && firebase emulators:exec --project demo-bopli --only auth,firestore,functions \"npm run test:cloud:integration && npm run test:cloud:e2e\""
   },
   "dependencies": {
+    "firebase": "^12.19.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "6.4.3",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "firebase-tools": "^15.32.1",
     "jsdom": "^25.0.1",
+    "vite": "6.4.3",
     "vitest": "5.0.3"
   },
   "overrides": {
+    "@grpc/grpc-js": "^1.13.6",
+    "basic-ftp": "^6.2.1",
     "electron-to-chromium": "1.5.439"
   }
 }
